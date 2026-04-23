@@ -511,9 +511,20 @@
     background: var(--hover-soft);
   }
   .file-drop input[type="file"] {
-  /* 徹底從渲染流移除 — label 包住仍可觸發檔案選擇器（HTML 標準行為） */
-  display: none !important;
-}ppearance: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    /* defensive: 徹底禁用原生 file input 的虛線焦點外框 */
+    outline: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
   }
   .file-drop input[type="file"]::-webkit-file-upload-button {
     display: none;   /* 桌面 Chrome/Safari 預設會畫出 "Choose File" 按鈕，強制隱藏 */
@@ -641,6 +652,28 @@
     padding: 24px 22px 28px;
     background: var(--surface);
     border-top: 1px solid var(--bg);
+  }
+  /* Upload progress (inside submit-area) */
+  .upload-progress {
+    display: none;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  .upload-progress.show {
+    display: block;
+    animation: fadeIn 0.2s ease;
+  }
+  .upload-progress .up-bar {
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .upload-progress .up-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--mint);
+    transition: width 0.35s ease;
   }
   .btn-row {
     display: grid;
@@ -839,8 +872,7 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <span><span class="dot"></span>衡點健康  Hendia</span>
-    <span id="date-stamp"></span>
+    <span><span class="dot"></span>衡點健康  Balance Point</span>
   </div>
 
   <!-- Hero -->
@@ -1006,7 +1038,7 @@
           <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
         </div>
         <label class="file-drop" id="drop-chat">
-          <input type="file" id="file-chat" accept="image/*" multiple>
+          <input type="file" id="file-chat" accept="image/*" multiple style="display:none">
           <div class="fd-icon">+</div>
           <div class="fd-text">點擊此處上傳截圖</div>
           <div class="fd-hint">對話截圖  需含訊息時間</div>
@@ -1022,7 +1054,7 @@
           <span class="sub-remind">※ 可上傳多個檔案  支援 JPG / PNG / HEIC / PDF</span>
         </div>
         <label class="file-drop" id="drop-medical">
-          <input type="file" id="file-medical" accept="image/*,application/pdf" multiple>
+          <input type="file" id="file-medical" accept="image/*,application/pdf" multiple style="display:none">
           <div class="fd-icon">+</div>
           <div class="fd-text">點擊此處上傳檔案</div>
           <div class="fd-hint">就診收據 / 診斷證明  可選擇多個</div>
@@ -1043,6 +1075,10 @@
         <button type="submit" class="btn btn-primary" id="submit-btn">
           送出表單 <span class="arrow">→</span>
         </button>
+      </div>
+      <!-- Upload progress bar -->
+      <div class="upload-progress" id="upload-progress" aria-hidden="true">
+        <div class="up-bar"><div class="up-fill" id="up-fill"></div></div>
       </div>
       <div class="submit-note">
         送出後將無法修改，如需更改請聯繫場館。<br>
@@ -1068,7 +1104,8 @@
   </div>
 
   <footer>
-    衡點健康  Hendia<br>
+    衡點健康  Balance Point Health<br>
+    Powered by <span>LINE LIFF</span>
   </footer>
 
 </main>
@@ -1134,14 +1171,6 @@
   function closeLiff() {
     if (window.liff && liff.closeWindow) liff.closeWindow();
   }
-
-  /* Date stamp */
-  (function setStamp() {
-    const d = new Date();
-    const pad = n => String(n).padStart(2, "0");
-    document.getElementById("date-stamp").textContent =
-      `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
-  })();
 
   /* Rules toggle */
   function toggleRules() {
@@ -1471,15 +1500,17 @@
       doneFiles++;
       if (totalFiles > 0) {
         btn.innerHTML = "上傳中 " + doneFiles + " / " + totalFiles + " …";
-        progressFill.style.width = Math.min(100, (doneFiles / totalFiles) * 100) + "%";
+        if (progressFill) {
+          progressFill.style.width = Math.min(100, (doneFiles / totalFiles) * 100) + "%";
+        }
       }
     };
 
     btn.disabled = true;
     if (totalFiles > 0) {
       btn.innerHTML = "上傳中 0 / " + totalFiles + " …";
-      progressFill.style.width = "0%";
-      progressBox.classList.add("show");
+      if (progressFill) progressFill.style.width = "0%";
+      if (progressBox) progressBox.classList.add("show");
     } else {
       btn.innerHTML = "送出中…";
     }
@@ -1507,11 +1538,9 @@
         state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder, updateProgress) : Promise.resolve([]),
       ]);
 
-      // 全部上傳完，進入「送出中」階段
-      btn.innerHTML = "送出中…";
-      if (progressFill) progressFill.style.width = "100%";
       // 2) 送 Make webhook（純 JSON，無 binary）
       btn.innerHTML = "送出中…";
+      if (progressFill) progressFill.style.width = "100%";
       const payload = {
         userId: state.userId,
         displayName: state.displayName,
@@ -1543,6 +1572,7 @@
       btn.disabled = false;
       btn.innerHTML = "送出申請";
       if (progressBox) progressBox.classList.remove("show");
+      if (progressFill) progressFill.style.width = "0%";
       showModal({
         title: "送出失敗",
         body: "網路或伺服器異常，請截圖此畫面聯絡行政人員。<br><br><small style='color:#b16056'>" + (err && err.message ? err.message : "未知錯誤") + "</small>",
