@@ -457,8 +457,9 @@
     animation: fadeIn 0.3s ease;
   }
 
-  /* Separator when both upload blocks are visible (sick leave case) */
-  .upload-block.show + .upload-block.show {
+  /* Separator when both upload blocks are visible (sick leave case).
+     使用 ~ (通用兄弟) 比 + (相鄰兄弟) 更可靠，就算之間插入其他節點也能生效 */
+  .upload-block.show ~ .upload-block.show {
     margin-top: 22px;
     padding-top: 22px;
     border-top: 1px dashed var(--line);
@@ -497,6 +498,8 @@
   }
 
   .file-drop {
+    display: block;          /* <label> 預設是 inline，不撐寬度會靠左擠，強制 block */
+    width: 100%;
     border: 1.5px dashed var(--line);
     background: var(--surface);
     padding: 26px 18px;
@@ -510,20 +513,29 @@
     border-color: var(--mint);
     background: var(--hover-soft);
   }
-  /* 徹底隱藏 file input — label 仍可觸發檔案選擇器（HTML 標準） */
   .file-drop input[type="file"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
-    pointer-events: none !important;
-    outline: none !important;
-    border: 0 !important;
-    background: transparent !important;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    /* defensive: 徹底禁用原生 file input 的虛線焦點外框 */
+    outline: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
   }
+  .file-drop input[type="file"]::-webkit-file-upload-button {
+    display: none;   /* 桌面 Chrome/Safari 預設會畫出 "Choose File" 按鈕，強制隱藏 */
+  }
+  .file-drop input[type="file"]::file-selector-button {
+    display: none;   /* 現代瀏覽器標準寫法 */
+  }
+  .file-drop input[type="file"]:focus { outline: none; }
   .file-drop .fd-icon {
     width: 34px; height: 34px;
     margin: 0 auto 10px;
@@ -835,7 +847,6 @@
     text-transform: uppercase;
     color: var(--text-mute);
   }
-  footer span { color: var(--terracotta); }
 
   /* ============ RESPONSIVE ============ */
   @media (max-width: 380px) {
@@ -863,7 +874,7 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <span><span class="dot"></span>衡點健康  Balance Point</span>
+    <span><span class="dot"></span>衡點健康  Hendia</span>
   </div>
 
   <!-- Hero -->
@@ -1029,7 +1040,7 @@
           <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
         </div>
         <label class="file-drop" id="drop-chat">
-          <input type="file" id="file-chat" accept="image/*" multiple style="display:none">
+          <input type="file" id="file-chat" accept="image/*" multiple>
           <div class="fd-icon">+</div>
           <div class="fd-text">點擊此處上傳截圖</div>
           <div class="fd-hint">對話截圖  需含訊息時間</div>
@@ -1045,7 +1056,7 @@
           <span class="sub-remind">※ 可上傳多個檔案  支援 JPG / PNG / HEIC / PDF</span>
         </div>
         <label class="file-drop" id="drop-medical">
-          <input type="file" id="file-medical" accept="image/*,application/pdf" multiple style="display:none">
+          <input type="file" id="file-medical" accept="image/*,application/pdf" multiple>
           <div class="fd-icon">+</div>
           <div class="fd-text">點擊此處上傳檔案</div>
           <div class="fd-hint">就診收據 / 診斷證明  可選擇多個</div>
@@ -1095,8 +1106,7 @@
   </div>
 
   <footer>
-    衡點健康  Balance Point Health<br>
-    Powered by <span>LINE LIFF</span>
+    衡點健康  Hendia Health
   </footer>
 
 </main>
@@ -1284,7 +1294,10 @@
       `;
 
       item.querySelector(".fi-name").textContent = file.name;
-      item.querySelector(".fi-remove").addEventListener("click", () => {
+      item.querySelector(".fi-remove").addEventListener("click", (ev) => {
+        // 防止事件冒泡到外層 <label>，否則 Safari 會同時觸發檔案選擇視窗
+        ev.preventDefault();
+        ev.stopPropagation();
         removeFileAt(stateKey, idx);
       });
       listEl.appendChild(item);
@@ -1519,10 +1532,29 @@
         throw new Error("Webhook URL 尚未設定");
       }
 
+      // 查詢學員編號（失敗不擋流程）
+      let memberId = null;
+      try {
+        const res = await fetch(EDGE_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "getMemberIdByNamePhone",
+            name: memberName,
+            phone: memberPhone
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.memberId) memberId = data.memberId;
+      } catch (e) {
+        console.warn("學員編號查詢失敗，使用預設資料夾：", e);
+      }
+
       // 1) 上傳聊天截圖 & 病假證明到 ImageKit
-      const safeFolderName = (memberName || "unknown").replace(/[^a-zA-Z0-9一-龥_-]/g, "_");
-      const chatFolder    = "leave/" + safeFolderName + "/" + leaveDate + "/chat";
-      const medicalFolder = "leave/" + safeFolderName + "/" + leaveDate + "/medical";
+      const safeName = (memberName || "unknown").replace(/[^a-zA-Z0-9一-龥_-]/g, "_");
+      const memberFolderName = memberId ? (memberId + "_" + safeName) : safeName;
+      const chatFolder    = "leave/" + memberFolderName + "/" + leaveDate + "/chat";
+      const medicalFolder = "leave/" + memberFolderName + "/" + leaveDate + "/medical";
 
       const [chatUrls, medicalUrls] = await Promise.all([
         uploadBatch(state.filesChat, chatFolder, updateProgress),
@@ -1534,6 +1566,7 @@
       if (progressFill) progressFill.style.width = "100%";
       const payload = {
         userId: state.userId,
+        memberId: memberId,
         displayName: state.displayName,
         name: memberName,
         phone: memberPhone,
