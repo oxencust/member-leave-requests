@@ -1620,7 +1620,7 @@
         state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder, updateProgress) : Promise.resolve([]),
       ]);
 
-      // 2) 送 Make webhook（純 JSON，無 binary）
+      // 2) 直接呼叫 Edge Function 寫入 Supabase（陣列由 Edge Function 處理，避免 Make PG literal 錯誤）
       btn.innerHTML = "送出中…";
       if (progressFill) progressFill.style.width = "100%";
       const payload = {
@@ -1639,12 +1639,27 @@
         submittedAt: new Date().toISOString(),
       };
 
+      // 2a) 先寫入 Supabase（Edge Function）
+      const sbRes = await fetch(EDGE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "createLeaveRequest", ...payload }),
+      });
+      const sbData = await sbRes.json().catch(() => ({}));
+      if (!sbRes.ok || !sbData.success) {
+        throw new Error("Supabase 寫入失敗：" + (sbData.error || sbRes.status));
+      }
+
+      // 2b) 再送 Make webhook（讓 Make 只處理寫入 Google Sheet）
       const res = await fetch(LEAVE_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Webhook 回傳 " + res.status);
+      if (!res.ok) {
+        // Sheet 寫入失敗不影響主流程，僅記錄 warning（Supabase 已成功）
+        console.warn("Make webhook 回傳 " + res.status + "（Sheet 寫入可能失敗，但 Supabase 已建檔）");
+      }
 
       // Success
       document.getElementById("leave-form").style.display = "none";
