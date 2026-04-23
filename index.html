@@ -40,18 +40,6 @@
 
   *, *::before, *::after { box-sizing: border-box; }
 
-  /* ============ DEBUG: ghost rectangle hunter — remove after identifying ============ */
-  .upload-block { outline: 2px solid red !important; outline-offset: 4px; }
-  .upload-prompt { outline: 2px solid orange !important; outline-offset: 2px; }
-  .file-drop { outline: 2px solid blue !important; outline-offset: 2px; }
-  .file-list { outline: 2px solid green !important; outline-offset: 2px; }
-  .file-drop input[type="file"] { outline: 2px solid purple !important; background: rgba(255,0,255,0.3) !important; }
-  .file-drop .fd-icon { outline: 2px solid magenta !important; }
-  .file-drop .fd-text { outline: 2px solid cyan !important; }
-  .file-drop .fd-hint { outline: 2px solid lime !important; }
-  section.block { outline: 2px dashed gold !important; outline-offset: 8px; }
-  /* ============ END DEBUG ============ */
-
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
@@ -522,29 +510,20 @@
     border-color: var(--mint);
     background: var(--hover-soft);
   }
+  /* 徹底隱藏 file input — label 仍可觸發檔案選擇器（HTML 標準） */
   .file-drop input[type="file"] {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    /* defensive: 徹底禁用原生 file input 的虛線焦點外框 */
-    outline: none;
-    border: 0;
-    padding: 0;
-    margin: 0;
-    background: transparent;
-    appearance: none;
-    -webkit-appearance: none;
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
+    pointer-events: none !important;
+    outline: none !important;
+    border: 0 !important;
+    background: transparent !important;
   }
-  .file-drop input[type="file"]::-webkit-file-upload-button {
-    display: none;   /* 桌面 Chrome/Safari 預設會畫出 "Choose File" 按鈕，強制隱藏 */
-  }
-  .file-drop input[type="file"]::file-selector-button {
-    display: none;   /* 現代瀏覽器標準寫法 */
-  }
-  .file-drop input[type="file"]:focus { outline: none; }
   .file-drop .fd-icon {
     width: 34px; height: 34px;
     margin: 0 auto 10px;
