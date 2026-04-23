@@ -1155,15 +1155,16 @@
   async function initLiff() {
     try {
       if (typeof liff === "undefined") return;
-      await liff.init({ liffId: LIFF_ID });
+      // withLoginOnExternalBrowser: 讓 Safari / Chrome 等外部瀏覽器開啟時也自動觸發 LINE Login
+      await liff.init({
+        liffId: LIFF_ID,
+        withLoginOnExternalBrowser: true,
+      });
+      // 雙保險：若因任何原因仍未登入，手動呼叫 login
       if (!liff.isLoggedIn()) { liff.login(); return; }
       const profile = await liff.getProfile();
       state.userId = profile.userId;
       state.displayName = profile.displayName;
-      const nameInput = document.getElementById("f-name");
-      if (!nameInput.value && profile.displayName) {
-        nameInput.value = profile.displayName;
-      }
     } catch (err) {
       console.warn("LIFF init failed (dev mode):", err);
     }
@@ -1539,13 +1540,15 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "getMemberIdByNamePhone",
+            action: "search_member",
             name: memberName,
             phone: memberPhone
           })
         });
         const data = await res.json();
-        if (data.success && data.memberId) memberId = data.memberId;
+        if (data.success && data.members && data.members.length > 0) {
+          memberId = data.members[0].id;
+        }
       } catch (e) {
         console.warn("學員編號查詢失敗，使用預設資料夾：", e);
       }
