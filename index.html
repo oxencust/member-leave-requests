@@ -629,12 +629,11 @@
   .file-item .fi-remove {
     width: 28px;
     height: 28px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--terracotta);
     background: var(--surface);
-    color: var(--text);
+    color: var(--terracotta);
     border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -643,12 +642,26 @@
     transition: all 0.18s;
     font-family: inherit;
     padding: 0;
+    position: relative;
   }
+  /* 用 ::before / ::after 疊出清楚的 × 符號，不依賴 button 內容 */
+  .file-item .fi-remove::before,
+  .file-item .fi-remove::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 1.5px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .file-item .fi-remove::before { transform: rotate(45deg); }
+  .file-item .fi-remove::after  { transform: rotate(-45deg); }
   .file-item .fi-remove:hover {
     background: var(--terracotta);
     color: var(--surface);
     border-color: var(--terracotta);
   }
+  .file-item .fi-remove:active { transform: scale(0.92); }
 
   /* ============ BUTTONS ============ */
   .submit-area {
@@ -1152,21 +1165,64 @@
   const fileUrlMap = new WeakMap();
 
   /* LIFF */
+  /* ============================================
+     Debug overlay — 在網址後面加 ?debug=1 就會顯示
+     例如: https://liff.line.me/2008660081-coGwCsRj?debug=1
+  ============================================ */
+  const DEBUG = new URLSearchParams(location.search).get("debug") === "1";
+  function debugLog(msg) {
+    console.log("[LIFF DEBUG]", msg);
+    if (!DEBUG) return;
+    let box = document.getElementById("debug-box");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "debug-box";
+      box.style.cssText = "position:fixed;top:0;left:0;right:0;background:rgba(88,89,91,0.95);color:#faece8;font-family:monospace;font-size:11px;padding:8px 12px;z-index:9999;max-height:50vh;overflow:auto;white-space:pre-wrap;line-height:1.5;";
+      document.body.appendChild(box);
+    }
+    box.textContent += msg + "\n";
+  }
+
   async function initLiff() {
+    debugLog("① 開始 initLiff");
+    debugLog("   LIFF_ID = " + LIFF_ID);
+    debugLog("   URL = " + location.href);
     try {
-      if (typeof liff === "undefined") return;
+      if (typeof liff === "undefined") {
+        debugLog("❌ liff SDK 未載入（typeof liff === undefined）");
+        return;
+      }
+      debugLog("② liff SDK 載入 OK");
+
       // withLoginOnExternalBrowser: 讓 Safari / Chrome 等外部瀏覽器開啟時也自動觸發 LINE Login
       await liff.init({
         liffId: LIFF_ID,
         withLoginOnExternalBrowser: true,
       });
+      debugLog("③ liff.init() 完成");
+      debugLog("   isInClient = " + liff.isInClient());
+      debugLog("   isLoggedIn = " + liff.isLoggedIn());
+      debugLog("   os = " + liff.getOS());
+
       // 雙保險：若因任何原因仍未登入，手動呼叫 login
-      if (!liff.isLoggedIn()) { liff.login(); return; }
+      if (!liff.isLoggedIn()) {
+        debugLog("④ 尚未登入，呼叫 liff.login()");
+        liff.login();
+        return;
+      }
+
+      debugLog("④ 已登入，呼叫 getProfile()");
       const profile = await liff.getProfile();
       state.userId = profile.userId;
       state.displayName = profile.displayName;
+      debugLog("⑤ getProfile 成功");
+      debugLog("   userId = " + profile.userId);
+      debugLog("   displayName = " + profile.displayName);
     } catch (err) {
-      console.warn("LIFF init failed (dev mode):", err);
+      debugLog("❌ LIFF 錯誤：" + (err && err.message ? err.message : String(err)));
+      debugLog("   code = " + (err && err.code));
+      debugLog("   stack = " + (err && err.stack));
+      console.warn("LIFF init failed:", err);
     }
   }
 
