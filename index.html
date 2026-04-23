@@ -1435,14 +1435,19 @@
   }
 
   // 批次上傳（並行，每批 3 張，避免手機網路被塞爆）
-  async function uploadBatch(files, folder) {
+  // onProgress: function() called once per successfully uploaded file
+  async function uploadBatch(files, folder, onProgress) {
     if (!files || files.length === 0) return [];
     const auth = await getImageKitAuth();
     const urls = [];
     const BATCH = 3;
     for (let i = 0; i < files.length; i += BATCH) {
       const chunk = files.slice(i, i + BATCH);
-      const chunkUrls = await Promise.all(chunk.map(f => uploadToImageKit(f, folder, auth)));
+      const chunkUrls = await Promise.all(chunk.map(async (f) => {
+        const url = await uploadToImageKit(f, folder, auth);
+        if (typeof onProgress === "function") onProgress();
+        return url;
+      }));
       urls.push(...chunkUrls);
     }
     return urls;
@@ -1454,8 +1459,30 @@
     const leaveDate = document.getElementById("f-date").value;
 
     const btn = document.getElementById("submit-btn");
+    const progressBox = document.getElementById("upload-progress");
+    const progressFill = document.getElementById("up-fill");
+
+    // 計算總檔案數（病假才算醫療證明）
+    const totalFiles = state.filesChat.length +
+      (state.leaveType === "病假" ? state.filesMedical.length : 0);
+    let doneFiles = 0;
+
+    const updateProgress = () => {
+      doneFiles++;
+      if (totalFiles > 0) {
+        btn.innerHTML = "上傳中 " + doneFiles + " / " + totalFiles + " …";
+        progressFill.style.width = Math.min(100, (doneFiles / totalFiles) * 100) + "%";
+      }
+    };
+
     btn.disabled = true;
-    btn.innerHTML = "上傳照片中…";
+    if (totalFiles > 0) {
+      btn.innerHTML = "上傳中 0 / " + totalFiles + " …";
+      progressFill.style.width = "0%";
+      progressBox.classList.add("show");
+    } else {
+      btn.innerHTML = "送出中…";
+    }
 
     // Dynamic success note based on leave type
     const successNote = document.getElementById("success-note");
@@ -1476,10 +1503,13 @@
       const medicalFolder = "leave/" + safeFolderName + "/" + leaveDate + "/medical";
 
       const [chatUrls, medicalUrls] = await Promise.all([
-        uploadBatch(state.filesChat, chatFolder),
-        state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder) : Promise.resolve([]),
+        uploadBatch(state.filesChat, chatFolder, updateProgress),
+        state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder, updateProgress) : Promise.resolve([]),
       ]);
 
+      // 全部上傳完，進入「送出中」階段
+      btn.innerHTML = "送出中…";
+      if (progressFill) progressFill.style.width = "100%";
       // 2) 送 Make webhook（純 JSON，無 binary）
       btn.innerHTML = "送出中…";
       const payload = {
@@ -1512,6 +1542,7 @@
       console.error("送出失敗：", err);
       btn.disabled = false;
       btn.innerHTML = "送出申請";
+      if (progressBox) progressBox.classList.remove("show");
       showModal({
         title: "送出失敗",
         body: "網路或伺服器異常，請截圖此畫面聯絡行政人員。<br><br><small style='color:#b16056'>" + (err && err.message ? err.message : "未知錯誤") + "</small>",
