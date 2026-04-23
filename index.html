@@ -40,6 +40,18 @@
 
   *, *::before, *::after { box-sizing: border-box; }
 
+  /* ============ DEBUG: ghost rectangle hunter — remove after identifying ============ */
+  .upload-block { outline: 2px solid red !important; outline-offset: 4px; }
+  .upload-prompt { outline: 2px solid orange !important; outline-offset: 2px; }
+  .file-drop { outline: 2px solid blue !important; outline-offset: 2px; }
+  .file-list { outline: 2px solid green !important; outline-offset: 2px; }
+  .file-drop input[type="file"] { outline: 2px solid purple !important; background: rgba(255,0,255,0.3) !important; }
+  .file-drop .fd-icon { outline: 2px solid magenta !important; }
+  .file-drop .fd-text { outline: 2px solid cyan !important; }
+  .file-drop .fd-hint { outline: 2px solid lime !important; }
+  section.block { outline: 2px dashed gold !important; outline-offset: 8px; }
+  /* ============ END DEBUG ============ */
+
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
@@ -872,7 +884,7 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <span><span class="dot"></span>衡點健康  Hendia</span>
+    <span><span class="dot"></span>衡點健康  Balance Point</span>
   </div>
 
   <!-- Hero -->
@@ -1104,7 +1116,7 @@
   </div>
 
   <footer>
-    衡點健康  Hendia<br>
+    衡點健康  Balance Point Health<br>
     Powered by <span>LINE LIFF</span>
   </footer>
 
