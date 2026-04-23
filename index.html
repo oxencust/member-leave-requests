@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#faece8">
+<title>衡點健康  請假系統</title>
+
+<!-- LIFF SDK -->
+
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<!-- Fonts -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+
+  /* ============================================
+
+     CIS TOKENS  衡點健康 Brand Palette
+  ============================================ */
+
+  :root {
+    --bg:         #faece8;   /* 背景底色 */
+    --surface:    #ffffff;   /* 表格 / 欄位 / 彈窗底色 */
+    --text:       #58595b;   /* 一般文字 */
+    --text-mute:  #b3b3b3;   /* 範例字 / 一般備註 */
+    --asterisk:   #b16056;   /* * 符號 / 重點備註 */
+    --line:       #b3b3b3;   /* 欄位外框 */
+    --mint:       #93c6c5;   /* 勾選狀態 / 主按鈕 */
+    --mint-deep:  #7ab3b2;   /* hover 加深 */
+    --terracotta: #b16056;   /* 強調 / 注意事項 */
+    --hover-soft: #faece8;   /* 勾選欄位 hover */
+    --radius: 4px;
+    --radius-lg: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans TC", system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 22px 16px 50px;
+  }
+
+  /* ============ TOPBAR ============ */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    padding: 4px 6px 14px;
+  }
+  .topbar .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--mint);
+    border-radius: 50%;
+    margin-right: 8px;
+    transform: translateY(-1px);
+  }
+
+  /* ============ HERO ============ */
+  header.hero {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 34px 26px 30px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  header.hero::after {
+    content: "";
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 140px; height: 140px;
+    background: var(--mint);
+    opacity: 0.08;
+    border-radius: 50%;
+  }
+  header.hero .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 12px;
+  }
+  header.hero h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: clamp(36px, 9vw, 48px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    color: var(--text);
+    position: relative;
+  }
+  header.hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mint);
+  }
+  header.hero .sub {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    margin: 0;
+    max-width: 40ch;
+    opacity: 0.85;
+  }
+
+  /* ============ CARD ============ */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  /* ============ RULES ============ */
+  .rules-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: "Noto Sans TC", sans-serif;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .rules-header .label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rules-header .num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    color: var(--terracotta);
+    letter-spacing: 0.1em;
+  }
+  .rules-header .chev {
+    width: 10px; height: 10px;
+    border-right: 1.5px solid var(--text);
+    border-bottom: 1.5px solid var(--text);
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform 0.25s ease;
+  }
+  .rules.open .rules-header .chev {
+    transform: rotate(-135deg) translate(-2px, -2px);
+  }
+  .rules-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  .rules.open .rules-body {
+    max-height: 1600px;
+  }
+  .rules-content {
+    padding: 4px 20px 22px;
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--text);
+    border-top: 1px dashed var(--line);
+  }
+  .rule-item {
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .rule-item:last-child { border-bottom: none; }
+  .rule-item .tag {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    background: var(--mint);
+    color: var(--surface);
+    margin-bottom: 8px;
+    border-radius: 2px;
+  }
+  .rule-item .tag.warn { background: var(--terracotta); }
+  .rule-item h4 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 17px;
+    margin: 2px 0 6px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .rule-item p { margin: 0; }
+  .rule-item strong {
+    color: var(--terracotta);
+    font-weight: 600;
+  }
+  .rule-item .sub-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+
+  /* ============ SECTIONS ============ */
+  section.block {
+    padding: 28px 22px;
+    border-bottom: 1px solid var(--bg);
+  }
+  section.block:last-of-type { border-bottom: none; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-head .idx {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--terracotta);
+  }
+  .section-head h2 {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--text);
+  }
+  .section-head h2 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text-mute);
+    font-size: 14px;
+    margin-left: 6px;
+  }
+
+  /* ============ FIELDS ============ */
+  .field { margin-bottom: 18px; }
+  .field label.lbl {
+    display: block;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .field label.lbl .req {
+    color: var(--asterisk);
+    margin-left: 3px;
+    font-weight: 700;
+  }
+
+  .input, select.input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .input:focus, select.input:focus {
+    border-color: var(--mint);
+    box-shadow: 0 0 0 3px rgba(147, 198, 197, 0.18);
+  }
+  .input::placeholder { color: var(--text-mute); }
+  .input::-webkit-datetime-edit { color: var(--text); }
+  input[type="date"]:invalid::-webkit-datetime-edit,
+  input[type="time"]:invalid::-webkit-datetime-edit {
+    color: var(--text-mute);
+  }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Pill selector */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 12px 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+  .pill:hover { background: var(--hover-soft); }
+  .pill.active {
+    background: var(--mint);
+    color: var(--surface);
+    border-color: var(--mint);
+  }
+
+  /* Leave type cards */
+  .leave-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .leave-card {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 18px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    position: relative;
+    border-radius: var(--radius);
+    font-family: inherit;
+    color: var(--text);
+  }
+  .leave-card:hover { background: var(--hover-soft); }
+  .leave-card.active {
+    border-color: var(--mint);
+    box-shadow: inset 0 0 0 1px var(--mint);
+    background: var(--surface);
+  }
+  .leave-card .lc-tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--terracotta);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .leave-card .lc-title {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .leave-card.active .lc-title { color: var(--mint-deep); }
+  .leave-card .lc-desc {
+    font-size: 11.5px;
+    color: var(--text-mute);
+    line-height: 1.55;
+  }
+  .leave-card .lc-check {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 18px; height: 18px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface);
+  }
+  .leave-card.active .lc-check {
+    background: var(--mint);
+    border-color: var(--mint);
+  }
+  .leave-card.active .lc-check::after {
+    content: "";
+    position: absolute;
+    left: 5px; top: 2px;
+    width: 5px; height: 9px;
+    border-right: 1.5px solid var(--surface);
+    border-bottom: 1.5px solid var(--surface);
+    transform: rotate(45deg);
+  }
+
+  /* Notice boxes */
+  .notice {
+    padding: 14px 16px;
+    border-left: 3px solid var(--terracotta);
+    background: var(--hover-soft);
+    margin: 14px 0 0;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text);
+    display: none;
+    border-radius: 2px;
+  }
+  .notice.show { display: block; animation: fadeIn 0.3s ease; }
+  .notice .nt {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--terracotta);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .notice strong {
+    color: var(--terracotta);
+    font-weight: 600;
+  }
+  .notice.info { border-left-color: var(--mint); }
+  .notice.info .nt { color: var(--mint-deep); }
+  .notice.info strong { color: var(--mint-deep); }
+  .notice ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+  .notice li { margin-bottom: 4px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* File upload */
+  .upload-block { display: none; }
+  .upload-block.show { display: block; animation: fadeIn 0.3s ease; }
+
+  /* Separator when both upload blocks are visible (sick leave case) */
+  .upload-block.show + .upload-block.show {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .upload-prompt {
+    padding: 14px 16px;
+    background: var(--hover-soft);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--terracotta);
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text);
+    border-radius: 2px;
+  }
+  .upload-prompt .pt-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--terracotta);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .upload-prompt strong {
+    color: var(--terracotta);
+    font-weight: 600;
+  }
+  .upload-prompt .sub-remind {
+    display: block;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--text-mute);
+  }
+
+  .file-drop {
+    border: 1.5px dashed var(--line);
+    background: var(--surface);
+    padding: 26px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border-radius: var(--radius);
+  }
+  .file-drop:hover {
+    border-color: var(--mint);
+    background: var(--hover-soft);
+  }
+  .file-drop input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .file-drop .fd-icon {
+    width: 34px; height: 34px;
+    margin: 0 auto 10px;
+    border: 1.5px solid var(--mint);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mint);
+    font-family: "Fraunces", serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .file-drop .fd-text {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .file-drop .fd-hint {
+    font-size: 11.5px;
+    color: var(--text-mute);
+  }
+  .file-drop.has-file {
+    border-style: solid;
+    border-color: var(--mint);
+    background: var(--hover-soft);
+  }
+  .file-drop.has-file .fd-icon {
+    background: var(--mint);
+    color: var(--surface);
+    border-color: var(--mint);
+  }
+
+  /* File list (multiple uploads) */
+  .file-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px 8px 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    animation: fadeIn 0.22s ease;
+  }
+  .file-item .fi-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 3px;
+    object-fit: cover;
+    background: var(--bg);
+    flex-shrink: 0;
+    display: block;
+  }
+  .file-item .fi-thumb-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--terracotta);
+    background: var(--hover-soft);
+    letter-spacing: 0.05em;
+  }
+  .file-item .fi-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .file-item .fi-name {
+    font-size: 13px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .file-item .fi-size {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    color: var(--text-mute);
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .file-item .fi-remove {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s;
+    font-family: inherit;
+    padding: 0;
+  }
+  .file-item .fi-remove:hover {
+    background: var(--terracotta);
+    color: var(--surface);
+    border-color: var(--terracotta);
+  }
+
+  /* ============ BUTTONS ============ */
+  .submit-area {
+    padding: 24px 22px 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--bg);
+  }
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+  }
+  .btn {
+    padding: 16px 14px;
+    font-family: "Noto Sans TC", sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 0.18s;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    text-align: center;
+  }
+  .btn-primary {
+    background: var(--mint);
+    color: var(--surface);
+    border-color: var(--mint);
+  }
+  .btn-primary:hover { background: var(--mint-deep); border-color: var(--mint-deep); }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary:disabled {
+    background: var(--text-mute);
+    border-color: var(--text-mute);
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--line);
+  }
+  .btn-secondary:hover { background: var(--hover-soft); }
+  .btn-primary .arrow {
+    display: inline-block;
+    margin-left: 6px;
+    transition: transform 0.2s;
+  }
+  .btn-primary:hover .arrow { transform: translateX(3px); }
+
+  .submit-note {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--text-mute);
+    margin-top: 14px;
+    line-height: 1.6;
+  }
+
+  /* ============ SUCCESS ============ */
+  .success {
+    display: none;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    padding: 50px 26px 40px;
+  }
+  .success.show { display: block; animation: fadeIn 0.4s ease; }
+  .success .sc-icon {
+    width: 72px; height: 72px;
+    margin: 0 auto 24px;
+    border: 1.5px solid var(--mint);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hover-soft);
+  }
+  .success .sc-icon::after {
+    content: "";
+    width: 20px; height: 32px;
+    border-right: 2px solid var(--mint);
+    border-bottom: 2px solid var(--mint);
+    transform: rotate(45deg) translate(-2px, -4px);
+  }
+  .success h2 {
+    font-family: "Fraunces", serif;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .success p {
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  .success p .hi {
+    color: var(--terracotta);
+    font-weight: 600;
+  }
+
+  /* ============ MODAL ============ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(88, 89, 91, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    max-width: 340px;
+    width: 100%;
+    padding: 28px 24px 22px;
+    text-align: center;
+    animation: modalIn 0.28s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal .m-icon {
+    width: 44px; height: 44px;
+    margin: 0 auto 14px;
+    border: 1.5px solid var(--terracotta);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--terracotta);
+    font-family: "Fraunces", serif;
+    font-size: 24px;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .modal .m-title {
+    font-family: "Fraunces", serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .modal .m-body {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    margin: 0 0 20px;
+  }
+  .modal .m-body strong { color: var(--terracotta); }
+  .modal .m-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .modal .m-actions .btn { padding: 12px; font-size: 14px; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    text-align: center;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  footer span { color: var(--terracotta); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 380px) {
+    main { padding: 18px 12px 40px; }
+    header.hero { padding: 28px 20px 24px; }
+    header.hero h1 { font-size: 38px; }
+    section.block { padding: 24px 18px; }
+    .submit-area { padding: 20px 18px 24px; }
+    .leave-cards { grid-template-columns: 1fr; }
+    .pills { flex-direction: column; }
+    .pill { flex: 1 1 100%; }
+  }
+
+  input[type="date"], input[type="time"] { min-height: 48px; }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+  }
+
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span><span class="dot"></span>衡點健康  Balance Point</span>
+    <span id="date-stamp"></span>
+  </div>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="eyebrow">Form / 002  Leave Application</div>
+    <h1>請假 <em>申請</em></h1>
+    <p class="sub">請依實際情況填寫下列欄位，送出後系統將同步通知場館與您的授課教練。</p>
+  </header>
+
+  <!-- Rules -->
+  <div class="card rules" id="rules">
+    <button type="button" class="rules-header" onclick="toggleRules()">
+      <span class="label">
+        <span class="num"> 00</span>
+        請假規章
+      </span>
+      <span class="chev"></span>
+    </button>
+    <div class="rules-body">
+      <div class="rules-content">
+
+        <div class="rule-item">
+          <span class="tag">OK</span>
+          <h4>一般取消預約</h4>
+          <p>預約日前一天 <strong>20:00 前</strong>提出，即可取消預約，不產生任何費用。</p>
+        </div>
+
+        <div class="rule-item">
+          <span class="tag">補課</span>
+          <h4>臨時請假</h4>
+          <p>
+            課程開始 <strong>三小時前</strong>提出，須購買 <strong>補課卡（NT$300）</strong>進行補課。
+            <span class="sub-note">※ 審核通過後，館方將主動與您聯繫購買補課卡事宜。</span>
+          </p>
+        </div>
+
+        <div class="rule-item">
+          <span class="tag warn">曠課</span>
+          <h4>臨時請假（三小時內）</h4>
+          <p>課程開始 <strong>三小時內</strong>提出，視同曠課，將扣除當堂課卡且 <strong>無法進行補課</strong>。</p>
+        </div>
+
+        <div class="rule-item">
+          <span class="tag">病假</span>
+          <h4>病假  不可抗力</h4>
+          <p>
+            如遇病假或不可抗力因素，請於課程開始前 <strong>盡早主動告知教練</strong>，並附上當時的對話截圖（含時間）。
+            <span class="sub-note">※ 「就診紀錄」或「診斷證明」請於 <strong style="color:var(--terracotta)">兩日內</strong>補件上傳。</span>
+            <span class="sub-note">※ 審核通過後，館方將主動與您聯繫後續取消事宜。</span>
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <form id="leave-form" class="card" autocomplete="off">
+
+    <!-- Section 1: Identity -->
+    <section class="block">
+      <div class="section-head">
+        <span class="idx">01</span>
+        <h2>個人資訊 <em>/ identity</em></h2>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="f-name">姓名<span class="req">*</span></label>
+        <input class="input" type="text" id="f-name" name="name" placeholder="EX：林小美" required>
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="f-phone">聯絡電話<span class="req">*</span></label>
+        <input class="input" type="tel" id="f-phone" name="phone" placeholder="EX：0912345678" pattern="[0-9\-+ ]{8,}" required>
+      </div>
+    </section>
+
+    <!-- Section 2: Course -->
+    <section class="block">
+      <div class="section-head">
+        <span class="idx">02</span>
+        <h2>課程資訊 <em>/ class</em></h2>
+      </div>
+
+      <div class="field">
+        <label class="lbl">欲請假日期與時間<span class="req">*</span></label>
+        <div class="row-2">
+          <input class="input" type="date" id="f-date" name="date" required>
+          <input class="input" type="time" id="f-time" name="time" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="lbl">請假課種<span class="req">*</span></label>
+        <div class="pills" id="course-pills">
+          <button type="button" class="pill" data-value="皮拉提斯">皮拉提斯</button>
+          <button type="button" class="pill" data-value="肌肉賦能伸展">肌肉賦能伸展</button>
+          <button type="button" class="pill" data-value="重訓健身">重訓健身</button>
+        </div>
+        <input type="hidden" name="course" id="f-course">
+      </div>
+
+      <div class="field">
+        <label class="lbl" for="f-coach">授課教練<span class="req">*</span></label>
+        <input class="input" type="text" id="f-coach" name="coach" placeholder="EX：王教練" required>
+      </div>
+    </section>
+
+    <!-- Section 3: Leave type -->
+    <section class="block">
+      <div class="section-head">
+        <span class="idx">03</span>
+        <h2>請假別 <em>/ type</em></h2>
+      </div>
+
+      <div class="leave-cards" id="leave-cards">
+        <button type="button" class="leave-card" data-value="臨時請假">
+          <span class="lc-check"></span>
+          <div class="lc-tag">Type A</div>
+          <div class="lc-title">臨時請假</div>
+          <div class="lc-desc">個人因素、行程衝突等臨時狀況</div>
+        </button>
+        <button type="button" class="leave-card" data-value="病假">
+          <span class="lc-check"></span>
+          <div class="lc-tag">Type B</div>
+          <div class="lc-title">病假</div>
+          <div class="lc-desc">身體不適、就醫或不可抗力因素</div>
+        </button>
+      </div>
+      <input type="hidden" name="leaveType" id="f-leave-type">
+
+      <div class="notice" id="notice-temp">
+        <div class="nt"> 依規章提示</div>
+        <ul>
+          <li>課程開始 <strong>三小時前</strong>提出，須購買 <strong>補課卡 NT$300</strong> 補課。</li>
+          <li>課程開始 <strong>三小時內</strong>提出視同 <strong>曠課</strong>，扣當堂課卡且無法補課。</li>
+          <li><strong>審核通過</strong>後，館方將主動與您聯繫購買補課卡事宜。</li>
+        </ul>
+      </div>
+
+      <div class="notice info" id="notice-sick">
+        <div class="nt"> 依規章提示</div>
+        <ul>
+          <li>請於課程開始前 <strong>主動告知教練</strong>，並附上當時的<strong>對話截圖</strong>（含時間）。</li>
+          <li><strong>就診收據</strong>或<strong>診斷證明</strong>請於兩日內補件上傳。</li>
+          <li><strong>審核通過</strong>後，館方將主動與您聯繫後續取消事宜。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 4: Proof upload -->
+    <section class="block" id="block-upload">
+      <div class="section-head">
+        <span class="idx">04</span>
+        <h2>證明上傳 <em>/ proof</em></h2>
+      </div>
+
+      <!-- Chat screenshot upload (required for both leave types) -->
+      <div class="upload-block" id="upload-chat">
+        <div class="upload-prompt">
+          <span class="pt-label"> Upload  對話截圖</span>
+          <span id="chat-prompt-text">請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>。</span>
+          <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
+        </div>
+        <label class="file-drop" id="drop-chat">
+          <input type="file" id="file-chat" accept="image/*" multiple>
+          <div class="fd-icon">+</div>
+          <div class="fd-text">點擊此處上傳截圖</div>
+          <div class="fd-hint">對話截圖  需含訊息時間</div>
+        </label>
+        <div class="file-list" id="list-chat"></div>
+      </div>
+
+      <!-- Medical proof upload (required for 病假 only) -->
+      <div class="upload-block" id="upload-medical">
+        <div class="upload-prompt">
+          <span class="pt-label"> Upload  就診證明</span>
+          請上傳 <strong>就診收據</strong>或<strong>診斷證明</strong>。此步驟為病假補件，<strong>不取代</strong>「課前主動告知教練」的義務。
+          <span class="sub-remind">※ 可上傳多個檔案  支援 JPG / PNG / HEIC / PDF</span>
+        </div>
+        <label class="file-drop" id="drop-medical">
+          <input type="file" id="file-medical" accept="image/*,application/pdf" multiple>
+          <div class="fd-icon">+</div>
+          <div class="fd-text">點擊此處上傳檔案</div>
+          <div class="fd-hint">就診收據 / 診斷證明  可選擇多個</div>
+        </label>
+        <div class="file-list" id="list-medical"></div>
+      </div>
+
+      <div class="notice info" id="notice-upload-empty" style="display:block;">
+        <div class="nt">Pending</div>
+        請先於上方選擇<strong>請假別</strong>，系統將依規章顯示對應的上傳提示。
+      </div>
+    </section>
+
+    <!-- Submit area -->
+    <div class="submit-area">
+      <div class="btn-row">
+        <button type="button" class="btn btn-secondary" id="clear-btn">清除內容</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          送出表單 <span class="arrow">→</span>
+        </button>
+      </div>
+      <div class="submit-note">
+        送出後將無法修改，如需更改請聯繫場館。<br>
+        所有申請均依《請假規章》進行審核。
+      </div>
+    </div>
+  </form>
+
+  <!-- Success -->
+  <div class="success" id="success">
+    <div class="sc-icon"></div>
+    <h2>申請已送出</h2>
+    <p>
+      我們已收到您的請假申請。<br>
+      待場館<strong style="color:var(--mint-deep)">審核通過</strong>後，<br>
+      <span class="hi" id="success-note">館方將主動與您聯繫後續事宜。</span>
+    </p>
+    <div style="max-width: 240px; margin: 0 auto;">
+      <button type="button" class="btn btn-primary" style="width:100%;" onclick="closeLiff()">
+        關閉視窗
+      </button>
+    </div>
+  </div>
+
+  <footer>
+    衡點健康  Balance Point Health<br>
+    Powered by <span>LINE LIFF</span>
+  </footer>
+
+</main>
+
+<!-- Modal -->
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="m-icon" id="m-icon">!</div>
+    <h3 class="m-title" id="m-title">提醒</h3>
+    <p class="m-body" id="m-body"></p>
+    <div class="m-actions" id="m-actions">
+      <button type="button" class="btn btn-secondary" id="m-cancel">取消</button>
+      <button type="button" class="btn btn-primary" id="m-ok">確定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  /* ============================================
+     CONFIG  部署前請填入下面兩個值
+  ============================================ */
+
+  // 1) LIFF ID — 到 LINE Developers Console 建立 LIFF App 後取得
+  const LIFF_ID = "YOUR_LIFF_ID_HERE";
+
+  // 2) Make Webhook URL — 參考 Make場景設定指南-會員請假.md 建立場景後取得
+  const LEAVE_WEBHOOK_URL = "YOUR_MAKE_WEBHOOK_URL_HERE";
+
+  const state = {
+    userId: null,
+    displayName: null,
+    course: null,
+    leaveType: null,
+    filesChat: [],      // 對話截圖 (必填 for both leave types)
+    filesMedical: [],   // 就診證明 (必填 for 病假 only)
+  };
+  // Track object URLs to revoke and prevent memory leaks
+  const fileUrlMap = new WeakMap();
+
+  /* LIFF */
+  async function initLiff() {
+    try {
+      if (typeof liff === "undefined") return;
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+      const profile = await liff.getProfile();
+      state.userId = profile.userId;
+      state.displayName = profile.displayName;
+      const nameInput = document.getElementById("f-name");
+      if (!nameInput.value && profile.displayName) {
+        nameInput.value = profile.displayName;
+      }
+    } catch (err) {
+      console.warn("LIFF init failed (dev mode):", err);
+    }
+  }
+
+  function closeLiff() {
+    if (window.liff && liff.closeWindow) liff.closeWindow();
+  }
+
+  /* Date stamp */
+  (function setStamp() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    document.getElementById("date-stamp").textContent =
+      `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+  })();
+
+  /* Rules toggle */
+  function toggleRules() {
+    document.getElementById("rules").classList.toggle("open");
+  }
+
+  /* Course pills */
+  document.querySelectorAll("#course-pills .pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#course-pills .pill").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.course = btn.dataset.value;
+      document.getElementById("f-course").value = state.course;
+    });
+  });
+
+  /* Leave type cards */
+  let currentLeaveType = null;
+  document.querySelectorAll("#leave-cards .leave-card").forEach(card => {
+    card.addEventListener("click", () => {
+      document.querySelectorAll("#leave-cards .leave-card").forEach(c => c.classList.remove("active"));
+      card.classList.add("active");
+      const newType = card.dataset.value;
+      // If switching away from 病假, medical files no longer apply  clear them
+      if (currentLeaveType === "病假" && newType !== "病假") {
+        state.filesMedical.forEach(f => {
+          const url = fileUrlMap.get(f);
+          if (url) URL.revokeObjectURL(url);
+          fileUrlMap.delete(f);
+        });
+        state.filesMedical = [];
+      }
+      currentLeaveType = newType;
+      state.leaveType = newType;
+      document.getElementById("f-leave-type").value = state.leaveType;
+      updateLeaveUI(state.leaveType);
+      renderAllFileLists();
+    });
+  });
+
+  function updateLeaveUI(type) {
+    document.getElementById("notice-temp").classList.toggle("show", type === "臨時請假");
+    document.getElementById("notice-sick").classList.toggle("show", type === "病假");
+
+    // Chat upload: shown whenever a leave type is selected
+    document.getElementById("upload-chat").classList.toggle("show", !!type);
+    // Medical upload: shown only for 病假
+    document.getElementById("upload-medical").classList.toggle("show", type === "病假");
+
+    // Dynamic chat prompt text based on leave type
+    const chatPrompt = document.getElementById("chat-prompt-text");
+    if (type === "臨時請假") {
+      chatPrompt.innerHTML = '請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>，以利核對是否於<strong>課前三小時</strong>提出。';
+    } else if (type === "病假") {
+      chatPrompt.innerHTML = '請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>，以證明已於<strong>課程開始前主動告知教練</strong>。';
+    }
+
+    document.getElementById("notice-upload-empty").style.display = type ? "none" : "block";
+  }
+
+  /* File drops  multiple uploads, two separate categories */
+  const DROP_DEFAULTS = {
+    "drop-chat":    { text: "點擊此處上傳截圖", hint: "對話截圖  需含訊息時間", stateKey: "filesChat" },
+    "drop-medical": { text: "點擊此處上傳檔案", hint: "就診收據 / 診斷證明  可選擇多個", stateKey: "filesMedical" }
+  };
+
+  function setupFileDrop(dropId, inputId, listId, stateKey) {
+    const drop = document.getElementById(dropId);
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+
+    input.addEventListener("change", (e) => {
+      const newFiles = Array.from(e.target.files || []);
+      if (!newFiles.length) return;
+
+      newFiles.forEach(f => state[stateKey].push(f));
+      // Reset the input so selecting the same file again still triggers change
+      input.value = "";
+
+      renderFileList(drop, list, stateKey);
+    });
+  }
+
+  function humanSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function getThumbHtml(file) {
+    if (file.type && file.type.startsWith("image/")) {
+      let url = fileUrlMap.get(file);
+      if (!url) {
+        url = URL.createObjectURL(file);
+        fileUrlMap.set(file, url);
+      }
+      return `<img class="fi-thumb" src="${url}" alt="">`;
+    }
+    if (file.type === "application/pdf") {
+      return `<div class="fi-thumb fi-thumb-icon">PDF</div>`;
+    }
+    return `<div class="fi-thumb fi-thumb-icon">FILE</div>`;
+  }
+
+  function renderFileList(dropEl, listEl, stateKey) {
+    const files = state[stateKey];
+    listEl.innerHTML = "";
+
+    files.forEach((file, idx) => {
+      const item = document.createElement("div");
+      item.className = "file-item";
+      item.innerHTML = `
+
+        ${getThumbHtml(file)}
+        <div class="fi-info">
+          <div class="fi-name"></div>
+          <div class="fi-size">${humanSize(file.size)}</div>
+        </div>
+        <button type="button" class="fi-remove" aria-label="移除"></button>
+      `;
+
+      item.querySelector(".fi-name").textContent = file.name;
+      item.querySelector(".fi-remove").addEventListener("click", () => {
+        removeFileAt(stateKey, idx);
+      });
+      listEl.appendChild(item);
+    });
+
+    // Update drop zone state
+    if (files.length > 0) {
+      dropEl.classList.add("has-file");
+      dropEl.querySelector(".fd-text").textContent = "新增更多檔案";
+      dropEl.querySelector(".fd-hint").textContent = `已選取 ${files.length} 個檔案`;
+    } else {
+      dropEl.classList.remove("has-file");
+      const def = DROP_DEFAULTS[dropEl.id];
+      dropEl.querySelector(".fd-text").textContent = def.text;
+      dropEl.querySelector(".fd-hint").textContent = def.hint;
+    }
+  }
+
+  function removeFileAt(stateKey, idx) {
+    const removed = state[stateKey].splice(idx, 1)[0];
+    if (removed) {
+      const url = fileUrlMap.get(removed);
+      if (url) {
+        URL.revokeObjectURL(url);
+        fileUrlMap.delete(removed);
+      }
+    }
+    renderAllFileLists();
+  }
+
+  function renderAllFileLists() {
+    renderFileList(
+      document.getElementById("drop-chat"),
+      document.getElementById("list-chat"),
+      "filesChat"
+    );
+    renderFileList(
+      document.getElementById("drop-medical"),
+      document.getElementById("list-medical"),
+      "filesMedical"
+    );
+  }
+
+  function clearAllFiles() {
+    ["filesChat", "filesMedical"].forEach(key => {
+      state[key].forEach(f => {
+        const url = fileUrlMap.get(f);
+        if (url) URL.revokeObjectURL(url);
+        fileUrlMap.delete(f);
+      });
+      state[key] = [];
+    });
+    renderAllFileLists();
+  }
+
+  setupFileDrop("drop-chat",    "file-chat",    "list-chat",    "filesChat");
+  setupFileDrop("drop-medical", "file-medical", "list-medical", "filesMedical");
+
+  /* Custom modal */
+  function showModal({ title = "提醒", body = "", icon = "!", okText = "確定", cancelText = "取消", showCancel = true, onOk, onCancel }) {
+    const modal = document.getElementById("modal");
+    document.getElementById("m-title").textContent = title;
+    document.getElementById("m-body").innerHTML = body;
+    document.getElementById("m-icon").textContent = icon;
+
+    const okBtn = document.getElementById("m-ok");
+    const cancelBtn = document.getElementById("m-cancel");
+    okBtn.textContent = okText;
+    cancelBtn.textContent = cancelText;
+    cancelBtn.style.display = showCancel ? "" : "none";
+    document.getElementById("m-actions").style.gridTemplateColumns = showCancel ? "1fr 1fr" : "1fr";
+
+    const close = () => modal.classList.remove("show");
+    okBtn.onclick = () => { close(); if (onOk) onOk(); };
+    cancelBtn.onclick = () => { close(); if (onCancel) onCancel(); };
+
+    modal.classList.add("show");
+  }
+
+  /* Clear button */
+  document.getElementById("clear-btn").addEventListener("click", () => {
+    showModal({
+      title: "清除表單",
+      body: "確定要清除目前所填寫的所有內容嗎？",
+      icon: "?",
+      okText: "確定清除",
+      cancelText: "取消",
+      onOk: resetForm
+    });
+  });
+
+  function resetForm() {
+    const form = document.getElementById("leave-form");
+    form.reset();
+    state.course = null;
+    state.leaveType = null;
+    currentLeaveType = null;
+    document.querySelectorAll("#course-pills .pill").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("#leave-cards .leave-card").forEach(c => c.classList.remove("active"));
+    document.getElementById("f-course").value = "";
+    document.getElementById("f-leave-type").value = "";
+    updateLeaveUI(null);
+    clearAllFiles();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* Submit  strict validation, no bypass */
+  document.getElementById("leave-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const missing = [];
+    if (!document.getElementById("f-name").value.trim())  missing.push("姓名");
+    if (!document.getElementById("f-phone").value.trim()) missing.push("聯絡電話");
+    if (!document.getElementById("f-date").value)         missing.push("請假日期");
+    if (!document.getElementById("f-time").value)         missing.push("請假時間");
+    if (!state.course)                                    missing.push("請假課種");
+    if (!document.getElementById("f-coach").value.trim()) missing.push("授課教練");
+    if (!state.leaveType)                                 missing.push("請假別");
+    if (!state.filesChat.length)                          missing.push("對話截圖");
+    if (state.leaveType === "病假" && !state.filesMedical.length) missing.push("就診證明");
+
+    if (missing.length) {
+      showModal({
+        title: "表單未完成",
+        body: `下列欄位為必填，請確認已填寫或上傳：<br><strong>${missing.join("、")}</strong>`,
+        icon: "!",
+        okText: "我知道了",
+        showCancel: false,
+      });
+      return;
+    }
+
+    doSubmit();
+  });
+
+  async function doSubmit() {
+    const payload = {
+      userId: state.userId,
+      displayName: state.displayName,
+      name: document.getElementById("f-name").value.trim(),
+      phone: document.getElementById("f-phone").value.trim(),
+      date: document.getElementById("f-date").value,
+      time: document.getElementById("f-time").value,
+      course: state.course,
+      coach: document.getElementById("f-coach").value.trim(),
+      leaveType: state.leaveType,
+      submittedAt: new Date().toISOString(),
+    };
+
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.innerHTML = "送出中…";
+
+    // Dynamic success note based on leave type
+    const successNote = document.getElementById("success-note");
+    if (state.leaveType === "臨時請假") {
+      successNote.textContent = "將主動與您聯繫購買補課卡事宜。";
+    } else if (state.leaveType === "病假") {
+      successNote.textContent = "將主動與您聯繫後續取消事宜。";
+    }
+
+    // Build multipart FormData for Make webhook
+    const formData = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v != null) formData.append(k, v);
+    });
+    state.filesChat.forEach((f, i) => formData.append(`chat_${i}`, f, f.name));
+    state.filesMedical.forEach((f, i) => formData.append(`medical_${i}`, f, f.name));
+    formData.append("chatCount", String(state.filesChat.length));
+    formData.append("medicalCount", String(state.filesMedical.length));
+
+    try {
+      if (!LEAVE_WEBHOOK_URL || LEAVE_WEBHOOK_URL.startsWith("YOUR_")) {
+        throw new Error("Webhook URL 尚未設定");
+      }
+      const res = await fetch(LEAVE_WEBHOOK_URL, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`Webhook 回傳 ${res.status}`);
+
+      // Success
+      document.getElementById("leave-form").style.display = "none";
+      document.getElementById("success").classList.add("show");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      console.error("送出失敗：", err);
+      btn.disabled = false;
+      btn.innerHTML = "送出申請";
+      showModal({
+        title: "送出失敗",
+        body: "網路或伺服器異常，請截圖此畫面聯絡行政人員。<br><br><small style='color:#b16056'>" + (err && err.message ? err.message : "未知錯誤") + "</small>",
+        icon: "!",
+        okText: "我知道了",
+        showCancel: false,
+      });
+    }
+  }
+
+  initLiff();
+
+</script>
+
+</body>
+</html>
+
