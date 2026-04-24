@@ -1519,21 +1519,26 @@
       method: "POST",
       body: fd,
     });
-    const result = await res.json();
-    if (result.error) throw new Error(result.error.message || "ImageKit 上傳失敗");
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.url) {
+      const msg = (result && (result.message || (result.error && result.error.message)))
+        || ("ImageKit 上傳失敗 " + res.status);
+      throw new Error(msg);
+    }
     return result.url;
   }
 
   // 批次上傳（並行，每批 3 張，避免手機網路被塞爆）
+  // 注意：ImageKit 的 token 為一次性 nonce，每張檔案都必須拿新的 auth
   // onProgress: function() called once per successfully uploaded file
   async function uploadBatch(files, folder, onProgress) {
     if (!files || files.length === 0) return [];
-    const auth = await getImageKitAuth();
     const urls = [];
     const BATCH = 3;
     for (let i = 0; i < files.length; i += BATCH) {
       const chunk = files.slice(i, i + BATCH);
       const chunkUrls = await Promise.all(chunk.map(async (f) => {
+        const auth = await getImageKitAuth();   // 每張一次，token 都是新的
         const url = await uploadToImageKit(f, folder, auth);
         if (typeof onProgress === "function") onProgress();
         return url;
