@@ -215,7 +215,15 @@
     color: var(--text);
     letter-spacing: -0.01em;
   }
-  .rule-item p { margin: 0; }
+  .rule-item p {
+    margin: 0;
+    line-height: 1.85;
+    text-wrap: pretty;              /* 新瀏覽器自動平衡行長、減少孤字 */
+    word-break: keep-all;           /* 中英混排時不在英文詞內斷行 */
+    overflow-wrap: anywhere;        /* 超長英文 fallback，避免爆版 */
+    line-break: strict;             /* 遵守 CJK 斷行規則 */
+    hanging-punctuation: allow-end; /* 行尾標點懸掛（iOS Safari 支援）*/
+  }
   .rule-item strong {
     color: var(--terracotta);
     font-weight: 600;
@@ -225,6 +233,12 @@
     margin-top: 6px;
     font-size: 12px;
     color: var(--text-mute);
+    line-height: 1.75;
+    text-wrap: pretty;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    line-break: strict;
+    hanging-punctuation: allow-end;
   }
 
   /* ============ SECTIONS ============ */
@@ -381,6 +395,11 @@
     font-size: 11.5px;
     color: var(--text-mute);
     line-height: 1.55;
+    text-wrap: pretty;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    line-break: strict;
+    hanging-punctuation: allow-end;
   }
   .leave-card .lc-check {
     position: absolute;
@@ -415,6 +434,11 @@
     color: var(--text);
     display: none;
     border-radius: 2px;
+    text-wrap: pretty;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    line-break: strict;
+    hanging-punctuation: allow-end;
   }
   .notice.show { display: block; animation: fadeIn 0.3s ease; }
   .notice .nt {
@@ -961,7 +985,7 @@
 
       <div class="field">
         <label class="lbl" for="f-phone">聯絡電話<span class="req">*</span></label>
-        <input class="input" type="tel" id="f-phone" name="phone" placeholder="EX：0912345678" pattern="[0-9\-+ ]{8,}" required>
+        <input class="input" type="tel" id="f-phone" name="phone" placeholder="EX：0912345678" pattern="09\d{8}" inputmode="numeric" maxlength="10" minlength="10" required>
       </div>
     </section>
 
@@ -1165,63 +1189,25 @@
   const fileUrlMap = new WeakMap();
 
   /* LIFF */
-  /* ============================================
-     Debug overlay — 在網址後面加 ?debug=1 就會顯示
-     例如: https://liff.line.me/2008660081-coGwCsRj?debug=1
-  ============================================ */
-  const DEBUG = new URLSearchParams(location.search).get("debug") === "1";
-  function debugLog(msg) {
-    console.log("[LIFF DEBUG]", msg);
-    if (!DEBUG) return;
-    let box = document.getElementById("debug-box");
-    if (!box) {
-      box = document.createElement("div");
-      box.id = "debug-box";
-      box.style.cssText = "position:fixed;top:0;left:0;right:0;background:rgba(88,89,91,0.95);color:#faece8;font-family:monospace;font-size:11px;padding:8px 12px;z-index:9999;max-height:50vh;overflow:auto;white-space:pre-wrap;line-height:1.5;";
-      document.body.appendChild(box);
-    }
-    box.textContent += msg + "\n";
-  }
-
   async function initLiff() {
-    debugLog("① 開始 initLiff");
-    debugLog("   LIFF_ID = " + LIFF_ID);
-    debugLog("   URL = " + location.href);
     try {
       if (typeof liff === "undefined") {
-        debugLog("❌ liff SDK 未載入（typeof liff === undefined）");
+        console.warn("LIFF SDK 未載入");
         return;
       }
-      debugLog("② liff SDK 載入 OK");
-
       // withLoginOnExternalBrowser: 讓 Safari / Chrome 等外部瀏覽器開啟時也自動觸發 LINE Login
       await liff.init({
         liffId: LIFF_ID,
         withLoginOnExternalBrowser: true,
       });
-      debugLog("③ liff.init() 完成");
-      debugLog("   isInClient = " + liff.isInClient());
-      debugLog("   isLoggedIn = " + liff.isLoggedIn());
-      debugLog("   os = " + liff.getOS());
-
-      // 雙保險：若因任何原因仍未登入，手動呼叫 login
       if (!liff.isLoggedIn()) {
-        debugLog("④ 尚未登入，呼叫 liff.login()");
         liff.login();
         return;
       }
-
-      debugLog("④ 已登入，呼叫 getProfile()");
       const profile = await liff.getProfile();
       state.userId = profile.userId;
       state.displayName = profile.displayName;
-      debugLog("⑤ getProfile 成功");
-      debugLog("   userId = " + profile.userId);
-      debugLog("   displayName = " + profile.displayName);
     } catch (err) {
-      debugLog("❌ LIFF 錯誤：" + (err && err.message ? err.message : String(err)));
-      debugLog("   code = " + (err && err.code));
-      debugLog("   stack = " + (err && err.stack));
       console.warn("LIFF init failed:", err);
     }
   }
@@ -1436,6 +1422,21 @@
     });
   })();
 
+  // 聯絡電話：只接受數字，最多 10 碼（行動電話 09XXXXXXXX）
+  (function bindPhoneInput() {
+    var el = document.getElementById("f-phone");
+    if (!el) return;
+    el.addEventListener("input", function (e) {
+      var v = String(e.target.value || "").replace(/\D+/g, "");
+      if (v.length > 10) v = v.slice(0, 10);
+      e.target.value = v;
+    });
+  })();
+
+  function isValidTwMobile(s) {
+    return /^09\d{8}$/.test(String(s || "").trim());
+  }
+
   /* Custom modal */
   function showModal({ title = "提醒", body = "", icon = "!", okText = "確定", cancelText = "取消", showCancel = true, onOk, onCancel }) {
     const modal = document.getElementById("modal");
@@ -1489,8 +1490,10 @@
     e.preventDefault();
 
     const missing = [];
+    const phoneVal = document.getElementById("f-phone").value.trim();
     if (!document.getElementById("f-name").value.trim())  missing.push("姓名");
-    if (!document.getElementById("f-phone").value.trim()) missing.push("聯絡電話");
+    if (!phoneVal)                                        missing.push("聯絡電話");
+    else if (!isValidTwMobile(phoneVal))                  missing.push("聯絡電話（需為 10 碼行動電話，例：0912345678）");
     if (!document.getElementById("f-date").value)         missing.push("請假日期");
     if (!document.getElementById("f-time").value)         missing.push("請假時間");
     if (!state.course)                                    missing.push("請假課種");
