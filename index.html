@@ -1023,7 +1023,9 @@
 
       <div class="field">
         <label class="lbl" for="f-coach">授課教練<span class="req">*</span></label>
-        <input class="input" type="text" id="f-coach" name="coach" placeholder="EX：王教練" required>
+        <select class="input" id="f-coach" name="coach" required disabled>
+          <option value="">請先選擇上方請假課種</option>
+        </select>
       </div>
     </section>
 
@@ -1228,6 +1230,62 @@
     document.getElementById("rules").classList.toggle("open");
   }
 
+  /* 課種 → 教練專長 對應表（與 coaches.specialties 欄位一致） */
+  const COURSE_SPEC_MAP = {
+    "皮拉提斯":    "pilates",
+    "肌肉賦能伸展": "stretch",
+    "重訓健身":    "weight",
+  };
+
+  /* 教練名單（初始化時從 Supabase 載入一次，快取在記憶體） */
+  let allCoaches = []; // [{ id, name, coach_name, specialties: ['pilates', ...] }, ...]
+
+  async function loadCoaches() {
+    try {
+      const res = await fetch(EDGE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "getCoaches" }),
+      });
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.coaches)) {
+        allCoaches = data.coaches;
+      } else {
+        console.warn("[loadCoaches] 回傳格式異常", data);
+      }
+    } catch (err) {
+      console.warn("[loadCoaches] 載入失敗", err);
+    }
+  }
+
+  /* 依課種重建教練下拉選單；清空目前已選 */
+  function populateCoachDropdown(courseName) {
+    const sel = document.getElementById("f-coach");
+    sel.innerHTML = "";
+
+    if (!courseName) {
+      sel.disabled = true;
+      sel.appendChild(new Option("請先選擇上方請假課種", ""));
+      return;
+    }
+
+    const spec = COURSE_SPEC_MAP[courseName];
+    const list = allCoaches.filter(c => Array.isArray(c.specialties) && c.specialties.includes(spec));
+
+    if (list.length === 0) {
+      sel.disabled = true;
+      sel.appendChild(new Option("此課種暫無教練資料，請洽館方", ""));
+      return;
+    }
+
+    sel.disabled = false;
+    sel.appendChild(new Option("請選擇授課教練", ""));
+    list.forEach(c => {
+      const name = c.coach_name || c.name || "";
+      if (name) sel.appendChild(new Option(name, name));
+    });
+  }
+
   /* Course pills */
   document.querySelectorAll("#course-pills .pill").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1235,6 +1293,8 @@
       btn.classList.add("active");
       state.course = btn.dataset.value;
       document.getElementById("f-course").value = state.course;
+      // 切換課種 → 自動清空並重建教練下拉
+      populateCoachDropdown(state.course);
     });
   });
 
@@ -1487,6 +1547,8 @@
     document.querySelectorAll("#leave-cards .leave-card").forEach(c => c.classList.remove("active"));
     document.getElementById("f-course").value = "";
     document.getElementById("f-leave-type").value = "";
+    // 重設教練下拉回未選課種的狀態
+    populateCoachDropdown(null);
     updateLeaveUI(null);
     clearAllFiles();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1720,6 +1782,7 @@
   }
 
   initLiff();
+  loadCoaches();
 
 </script>
 
