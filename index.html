@@ -1763,6 +1763,8 @@
 
       // Success
       document.getElementById("leave-form").style.display = "none";
+      // 若請假規章原本是展開的，送出成功後自動收起，確保學員清楚看到送出完成畫面
+      document.getElementById("rules").classList.remove("open");
       document.getElementById("success").classList.add("show");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
