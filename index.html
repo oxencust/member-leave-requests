@@ -126,7 +126,14 @@
     margin: 0;
     max-width: 40ch;
     opacity: 0.85;
+    text-wrap: pretty;              /* 新瀏覽器自動平衡行長、減少孤字 */
+    word-break: keep-all;           /* 中英混排時不在英文詞內斷行 */
+    overflow-wrap: anywhere;        /* 超長英文 fallback，避免爆版 */
+    line-break: strict;             /* 遵守 CJK 斷行規則 */
+    hanging-punctuation: allow-end; /* 行尾標點懸掛（iOS Safari 支援）*/
   }
+  /* 禁止斷行工具類：包住不可拆的短語，例如「20:00 前」、「3 天內」 */
+  .nobr { white-space: nowrap; }
 
   /* ============ CARD ============ */
   .card {
@@ -936,7 +943,7 @@
         <div class="rule-item">
           <span class="tag">OK</span>
           <h4>一般取消預約</h4>
-          <p>預約日前一天 <strong>20:00 前</strong>提出，即可取消預約，不產生任何費用。</p>
+          <p>預約日前一天 <span class="nobr"><strong>20:00 前</strong></span>提出，即可取消預約，不產生任何費用。</p>
         </div>
 
         <div class="rule-item">
