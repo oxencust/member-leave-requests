@@ -1413,6 +1413,29 @@
   setupFileDrop("drop-chat",    "file-chat",    "list-chat",    "filesChat");
   setupFileDrop("drop-medical", "file-medical", "list-medical", "filesMedical");
 
+  // 教練姓名統一化（與 Edge Function normalizeName 邏輯一致）
+  // 目的：tIaNa → Tiana；中文不動；清全形空白、零寬字元
+  function normalizeCoachName(s) {
+    if (!s) return "";
+    return String(s)
+      .trim()
+      .replace(/[\u3000\u00A0]/g, " ")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/\s+/g, " ")
+      .replace(/([A-Za-z]+)/g, function (w) {
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      });
+  }
+
+  // 即時正規化：離開教練欄位時把使用者看到的文字轉成統一格式
+  (function bindCoachNormalize() {
+    var el = document.getElementById("f-coach");
+    if (!el) return;
+    el.addEventListener("blur", function (e) {
+      e.target.value = normalizeCoachName(e.target.value);
+    });
+  })();
+
   /* Custom modal */
   function showModal({ title = "提醒", body = "", icon = "!", okText = "確定", cancelText = "取消", showCancel = true, onOk, onCancel }) {
     const modal = document.getElementById("modal");
@@ -1637,7 +1660,7 @@
         date: leaveDate,
         time: document.getElementById("f-time").value,
         course: state.course,
-        coach: document.getElementById("f-coach").value.trim(),
+        coach: normalizeCoachName(document.getElementById("f-coach").value),
         leaveType: state.leaveType,
         chatImageUrls: chatUrls,
         medicalImageUrls: medicalUrls,
