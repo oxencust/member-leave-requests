@@ -1180,8 +1180,9 @@
   // 1) LIFF ID — 到 LINE Developers Console 建立 LIFF App 後取得
   const LIFF_ID = "2008660081-coGwCsRj";
 
-  // 2) Make Webhook URL — 參考 Make場景設定指南-會員請假.md 建立場景後取得
-  const LEAVE_WEBHOOK_URL = "https://hook.us2.make.com/uw2ghhkj1vkq0g9rop1t82u72jlrf5dl";
+  // 2) Make Webhook URL — 已改由 Edge Function 伺服器端代呼，不再放客戶端
+  //    URL 存於 Supabase secret: LEAVE_WEBHOOK_URL
+  //    （學員端只打 EDGE_API_URL，Edge Function 寫入 Supabase 後背景送 Make）
 
   // 3) Edge Function URL — 用於取得 ImageKit 上傳簽名（沿用 MOTI 的 endpoint）
   const EDGE_API_URL = "https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api";
@@ -1197,8 +1198,15 @@
   // Track object URLs to revoke and prevent memory leaks
   const fileUrlMap = new WeakMap();
 
-  /* LIFF */
-  async function initLiff() {
+  /* LIFF
+     ------
+     重點修正（race condition）：
+     - 學員若在 LIFF 完成前就送出，state.userId 會是 null，造成 line_user_id 寫不進去。
+     - 改成 initLiff() 回傳一個可被 await 的 Promise，由 doSubmit() 在送出前等候。
+     - 等候設 5 秒上限：LIFF 真的失敗時不卡住使用者，回退到原本行為（送出 null）。
+  */
+  let _liffResolved = false;
+  const liffReady = (async function initLiff() {
     try {
       if (typeof liff === "undefined") {
         console.warn("LIFF SDK 未載入");
@@ -1218,7 +1226,25 @@
       state.displayName = profile.displayName;
     } catch (err) {
       console.warn("LIFF init failed:", err);
+    } finally {
+      _liffResolved = true;
+      // LIFF 完成（或失敗）後，把送出按鈕恢復可按狀態
+      const btn = document.getElementById("submit-btn");
+      if (btn && btn.dataset.liffPending === "1") {
+        btn.disabled = false;
+        btn.innerHTML = '送出表單 <span class="arrow">→</span>';
+        btn.dataset.liffPending = "0";
+      }
     }
+  })();
+
+  // 等待 LIFF 完成、或最多等 5 秒就放行（避免極端情境卡住使用者）
+  function awaitLiff(timeoutMs = 5000) {
+    if (_liffResolved) return Promise.resolve();
+    return Promise.race([
+      liffReady,
+      new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
   }
 
   function closeLiff() {
@@ -1685,9 +1711,8 @@
     }
 
     try {
-      if (!LEAVE_WEBHOOK_URL || LEAVE_WEBHOOK_URL.startsWith("YOUR_")) {
-        throw new Error("Webhook URL 尚未設定");
-      }
+      // 等候 LIFF 完成（最多 5 秒）；避免「按太快導致 line_user_id 寫不進去」的競態
+      await awaitLiff(5000);
 
       // 查詢學員編號（失敗不擋流程）
       let memberId = null;
@@ -1720,7 +1745,8 @@
         state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder, updateProgress) : Promise.resolve([]),
       ]);
 
-      // 2) 直接呼叫 Edge Function 寫入 Supabase（陣列由 Edge Function 處理，避免 Make PG literal 錯誤）
+      // 2) 呼叫 Edge Function：寫入 Supabase + 伺服器端代呼 Make webhook
+      //    （Make webhook URL 已搬到 Supabase secret，客戶端不再持有）
       btn.innerHTML = "送出中…";
       if (progressFill) progressFill.style.width = "100%";
       const payload = {
@@ -1739,7 +1765,6 @@
         submittedAt: new Date().toISOString(),
       };
 
-      // 2a) 先寫入 Supabase（Edge Function）
       const sbRes = await fetch(EDGE_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1749,17 +1774,7 @@
       if (!sbRes.ok || !sbData.success) {
         throw new Error("Supabase 寫入失敗：" + (sbData.error || sbRes.status));
       }
-
-      // 2b) 再送 Make webhook（讓 Make 只處理寫入 Google Sheet）
-      const res = await fetch(LEAVE_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        // Sheet 寫入失敗不影響主流程，僅記錄 warning（Supabase 已成功）
-        console.warn("Make webhook 回傳 " + res.status + "（Sheet 寫入可能失敗，但 Supabase 已建檔）");
-      }
+      // Make webhook 由 Edge Function 在背景送出（fire-and-forget），這裡不需要再呼叫
 
       // Success
       document.getElementById("leave-form").style.display = "none";
@@ -1783,7 +1798,25 @@
     }
   }
 
-  initLiff();
+  // initLiff() 已改為 IIFE 立刻執行；這裡只需把送出按鈕標記為「驗證中」，
+  // 由 LIFF 完成後（或下方 5 秒安全網）把按鈕恢復可按狀態。
+  (function gateSubmitButton() {
+    const btn = document.getElementById("submit-btn");
+    if (!btn) return;
+    if (_liffResolved) return; // LIFF 已同步完成（極少數），直接放行
+    btn.disabled = true;
+    btn.dataset.liffPending = "1";
+    btn.innerHTML = "LINE 驗證中…";
+    // 5 秒安全網：避免 LIFF 完全失敗時按鈕永久 disabled
+    setTimeout(() => {
+      if (btn.dataset.liffPending === "1") {
+        btn.disabled = false;
+        btn.innerHTML = '送出表單 <span class="arrow">→</span>';
+        btn.dataset.liffPending = "0";
+      }
+    }, 5000);
+  })();
+
   loadCoaches();
 
 </script>
