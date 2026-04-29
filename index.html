@@ -816,6 +816,30 @@
     color: var(--terracotta);
     font-weight: 600;
   }
+  .success-summary {
+    max-width: 320px;
+    margin: 0 auto 24px;
+    padding: 14px 16px;
+    background: var(--hover-soft);
+    border: 1px solid var(--mint);
+    border-radius: var(--radius-md);
+    text-align: left;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .success-summary:empty {
+    display: none;
+  }
+  .success-item {
+    padding: 4px 0;
+    color: var(--text);
+  }
+  .success-item + .success-item {
+    border-top: 1px dashed rgba(0,0,0,0.08);
+    margin-top: 4px;
+    padding-top: 8px;
+  }
 
   /* ============ MODAL ============ */
   .modal-backdrop {
@@ -910,6 +934,88 @@
     opacity: 0.5;
   }
 
+  /* ==== Class blocks (1-3 dynamic) ==== */
+  .block-hint {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #6f6a64;
+    line-height: 1.6;
+  }
+
+  .class-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .class-block {
+    position: relative;
+    padding: 18px 16px 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #fbfaf7;
+  }
+
+  .class-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  .class-block-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--mint-deep);
+    letter-spacing: 0.05em;
+  }
+
+  .cb-remove {
+    border: none;
+    background: transparent;
+    color: #b16056;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+  }
+  .cb-remove:hover { background: rgba(177, 96, 86, 0.08); }
+
+  /* Class block 內的 upload-block 強制顯示（不走「選了請假別才出現」的舊邏輯） */
+  .class-block .upload-block {
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    margin-top: 12px;
+  }
+
+  .add-class-row {
+    margin-top: 16px;
+    text-align: center;
+  }
+  #add-class-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--mint-deep);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  #add-class-btn:hover:not(:disabled) {
+    border-color: var(--mint);
+    background: #f5fbf8;
+  }
+  #add-class-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
 </style>
 </head>
 <body>
@@ -996,36 +1102,17 @@
       </div>
     </section>
 
-    <!-- Section 2: Course -->
+    <!-- Section 2: Date (shared across all classes in this submission) -->
     <section class="block">
       <div class="section-head">
         <span class="idx">02</span>
-        <h2>課程資訊 <em>/ class</em></h2>
+        <h2>請假日期 <em>/ date</em></h2>
       </div>
 
       <div class="field">
-        <label class="lbl">欲請假日期與時間<span class="req">*</span></label>
-        <div class="row-2">
-          <input class="input" type="date" id="f-date" name="date" required>
-          <input class="input" type="time" id="f-time" name="time" required>
-        </div>
-      </div>
-
-      <div class="field">
-        <label class="lbl">請假課種<span class="req">*</span></label>
-        <div class="pills" id="course-pills">
-          <button type="button" class="pill" data-value="皮拉提斯">皮拉提斯</button>
-          <button type="button" class="pill" data-value="肌肉賦能伸展">肌肉賦能伸展</button>
-          <button type="button" class="pill" data-value="重訓健身">重訓健身</button>
-        </div>
-        <input type="hidden" name="course" id="f-course">
-      </div>
-
-      <div class="field">
-        <label class="lbl" for="f-coach">授課教練<span class="req">*</span></label>
-        <select class="input" id="f-coach" name="coach" required disabled>
-          <option value="">請先選擇上方請假課種</option>
-        </select>
+        <label class="lbl" for="f-date">欲請假日期<span class="req">*</span></label>
+        <input class="input" type="date" id="f-date" name="date" required>
+        <p class="block-hint">同一張表單可申請當日的多堂課（最多 3 堂）；不同日期請另開申請。</p>
       </div>
     </section>
 
@@ -1071,30 +1158,147 @@
       </div>
     </section>
 
-    <!-- Section 4: Proof upload -->
-    <section class="block" id="block-upload">
+    <!-- Section 4: Class blocks (1-3 dynamic, same date) -->
+    <section class="block" id="block-classes">
       <div class="section-head">
         <span class="idx">04</span>
-        <h2>證明上傳 <em>/ proof</em></h2>
+        <h2>請假課程 <em>/ classes</em></h2>
       </div>
 
-      <!-- Chat screenshot upload (required for both leave types) -->
-      <div class="upload-block" id="upload-chat">
-        <div class="upload-prompt">
-          <span class="pt-label"> Upload  對話截圖</span>
-          <span id="chat-prompt-text">請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>。</span>
-          <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
+      <div class="class-blocks" id="class-blocks">
+        <!-- Block 0 (always visible) -->
+        <div class="class-block" data-cb-idx="0">
+          <div class="class-block-header">
+            <span class="class-block-title">第 1 堂</span>
+            <button type="button" class="cb-remove" data-cb-idx="0" style="display:none">✕ 移除</button>
+          </div>
+          <div class="field">
+            <label class="lbl">請假時間<span class="req">*</span></label>
+            <input class="input cb-time" type="time" required>
+          </div>
+          <div class="field">
+            <label class="lbl">請假課種<span class="req">*</span></label>
+            <div class="pills cb-course-pills">
+              <button type="button" class="pill" data-value="皮拉提斯">皮拉提斯</button>
+              <button type="button" class="pill" data-value="肌肉賦能伸展">肌肉賦能伸展</button>
+              <button type="button" class="pill" data-value="重訓健身">重訓健身</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl">授課教練<span class="req">*</span></label>
+            <select class="input cb-coach" required disabled>
+              <option value="">請先選擇上方請假課種</option>
+            </select>
+          </div>
+          <div class="upload-block">
+            <div class="upload-prompt">
+              <span class="pt-label">Upload  對話截圖</span>
+              請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>。
+              <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
+            </div>
+            <label class="file-drop cb-drop-chat">
+              <input type="file" class="cb-file-chat" accept="image/*" multiple>
+              <div class="fd-icon">+</div>
+              <div class="fd-text">點擊此處上傳截圖</div>
+              <div class="fd-hint">對話截圖  需含訊息時間</div>
+            </label>
+            <div class="file-list cb-list-chat"></div>
+          </div>
         </div>
-        <label class="file-drop" id="drop-chat">
-          <input type="file" id="file-chat" accept="image/*" multiple>
-          <div class="fd-icon">+</div>
-          <div class="fd-text">點擊此處上傳截圖</div>
-          <div class="fd-hint">對話截圖  需含訊息時間</div>
-        </label>
-        <div class="file-list" id="list-chat"></div>
+
+        <!-- Block 1 (hidden until +加一堂) -->
+        <div class="class-block" data-cb-idx="1" style="display:none">
+          <div class="class-block-header">
+            <span class="class-block-title">第 2 堂</span>
+            <button type="button" class="cb-remove" data-cb-idx="1">✕ 移除</button>
+          </div>
+          <div class="field">
+            <label class="lbl">請假時間<span class="req">*</span></label>
+            <input class="input cb-time" type="time">
+          </div>
+          <div class="field">
+            <label class="lbl">請假課種<span class="req">*</span></label>
+            <div class="pills cb-course-pills">
+              <button type="button" class="pill" data-value="皮拉提斯">皮拉提斯</button>
+              <button type="button" class="pill" data-value="肌肉賦能伸展">肌肉賦能伸展</button>
+              <button type="button" class="pill" data-value="重訓健身">重訓健身</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl">授課教練<span class="req">*</span></label>
+            <select class="input cb-coach" disabled>
+              <option value="">請先選擇上方請假課種</option>
+            </select>
+          </div>
+          <div class="upload-block">
+            <div class="upload-prompt">
+              <span class="pt-label">Upload  對話截圖</span>
+              請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>。
+              <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
+            </div>
+            <label class="file-drop cb-drop-chat">
+              <input type="file" class="cb-file-chat" accept="image/*" multiple>
+              <div class="fd-icon">+</div>
+              <div class="fd-text">點擊此處上傳截圖</div>
+              <div class="fd-hint">對話截圖  需含訊息時間</div>
+            </label>
+            <div class="file-list cb-list-chat"></div>
+          </div>
+        </div>
+
+        <!-- Block 2 (hidden until +加一堂) -->
+        <div class="class-block" data-cb-idx="2" style="display:none">
+          <div class="class-block-header">
+            <span class="class-block-title">第 3 堂</span>
+            <button type="button" class="cb-remove" data-cb-idx="2">✕ 移除</button>
+          </div>
+          <div class="field">
+            <label class="lbl">請假時間<span class="req">*</span></label>
+            <input class="input cb-time" type="time">
+          </div>
+          <div class="field">
+            <label class="lbl">請假課種<span class="req">*</span></label>
+            <div class="pills cb-course-pills">
+              <button type="button" class="pill" data-value="皮拉提斯">皮拉提斯</button>
+              <button type="button" class="pill" data-value="肌肉賦能伸展">肌肉賦能伸展</button>
+              <button type="button" class="pill" data-value="重訓健身">重訓健身</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="lbl">授課教練<span class="req">*</span></label>
+            <select class="input cb-coach" disabled>
+              <option value="">請先選擇上方請假課種</option>
+            </select>
+          </div>
+          <div class="upload-block">
+            <div class="upload-prompt">
+              <span class="pt-label">Upload  對話截圖</span>
+              請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>。
+              <span class="sub-remind">※ 可上傳多張圖片  支援 JPG / PNG / HEIC</span>
+            </div>
+            <label class="file-drop cb-drop-chat">
+              <input type="file" class="cb-file-chat" accept="image/*" multiple>
+              <div class="fd-icon">+</div>
+              <div class="fd-text">點擊此處上傳截圖</div>
+              <div class="fd-hint">對話截圖  需含訊息時間</div>
+            </label>
+            <div class="file-list cb-list-chat"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Medical proof upload (required for 病假 only) -->
+      <div class="add-class-row">
+        <button type="button" class="btn btn-secondary" id="add-class-btn">＋ 加一堂同日請假（1/3）</button>
+      </div>
+    </section>
+
+    <!-- Section 5: Medical proof upload (shared, 病假 only) -->
+    <section class="block" id="block-upload">
+      <div class="section-head">
+        <span class="idx">05</span>
+        <h2>病假醫療證明 <em>/ medical</em></h2>
+      </div>
+
       <div class="upload-block" id="upload-medical">
         <div class="upload-prompt">
           <span class="pt-label"> Upload  就診證明</span>
@@ -1112,7 +1316,7 @@
 
       <div class="notice info" id="notice-upload-empty" style="display:block;">
         <div class="nt">Pending</div>
-        請先於上方選擇<strong>請假別</strong>，系統將依規章顯示對應的上傳提示。
+        請先於上方選擇<strong>請假別為病假</strong>，再進行醫療證明上傳。
       </div>
     </section>
 
@@ -1144,6 +1348,7 @@
       待場館<strong style="color:var(--mint-deep)">審核通過</strong>後，<br>
       <span class="hi" id="success-note">館方將主動與您聯繫後續事宜。</span>
     </p>
+    <div id="success-summary" class="success-summary"></div>
     <div style="max-width: 240px; margin: 0 auto;">
       <button type="button" class="btn btn-primary" style="width:100%;" onclick="closeLiff()">
         關閉視窗
@@ -1190,10 +1395,15 @@
   const state = {
     userId: null,
     displayName: null,
-    course: null,
     leaveType: null,
-    filesChat: [],      // 對話截圖 (必填 for both leave types)
-    filesMedical: [],   // 就診證明 (必填 for 病假 only)
+    filesMedical: [],   // 就診證明（共用，僅病假必填）
+    // 1~3 堂課的個別資料；filesChat 為 File[]（每堂自己的對話截圖）
+    classes: [
+      { course: null, coach: null, time: '', filesChat: [] },
+      { course: null, coach: null, time: '', filesChat: [] },
+      { course: null, coach: null, time: '', filesChat: [] },
+    ],
+    activeClassCount: 1,  // 1~3，動態加減
   };
   // Track object URLs to revoke and prevent memory leaks
   const fileUrlMap = new WeakMap();
@@ -1284,9 +1494,9 @@
     }
   }
 
-  /* 依課種重建教練下拉選單；清空目前已選 */
-  function populateCoachDropdown(courseName) {
-    const sel = document.getElementById("f-coach");
+  /* 依課種重建教練下拉選單（每堂自己的 select）；清空目前已選 */
+  function populateCoachDropdown(courseName, blockEl) {
+    const sel = blockEl.querySelector(".cb-coach");
     sel.innerHTML = "";
 
     if (!courseName) {
@@ -1312,17 +1522,156 @@
     });
   }
 
-  /* Course pills */
-  document.querySelectorAll("#course-pills .pill").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#course-pills .pill").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      state.course = btn.dataset.value;
-      document.getElementById("f-course").value = state.course;
-      // 切換課種 → 自動清空並重建教練下拉
-      populateCoachDropdown(state.course);
+  /* 每堂 class-block 的事件繫結（使用事件委派，避免新增/移除時重複繫結） */
+  function getBlockIndex(blockEl) {
+    return Number(blockEl.dataset.cbIdx);
+  }
+
+  function bindClassBlock(blockEl) {
+    const idx = getBlockIndex(blockEl);
+
+    // 課種 pills
+    blockEl.querySelectorAll(".cb-course-pills .pill").forEach(btn => {
+      btn.addEventListener("click", () => {
+        blockEl.querySelectorAll(".cb-course-pills .pill").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const v = btn.dataset.value;
+        state.classes[idx].course = v;
+        // 課種變動 → 重建本堂教練下拉，並清空已選教練
+        state.classes[idx].coach = null;
+        populateCoachDropdown(v, blockEl);
+      });
     });
-  });
+
+    // 教練 select：使用者實際下拉選擇後同步進 state
+    const coachSel = blockEl.querySelector(".cb-coach");
+    coachSel.addEventListener("change", () => {
+      state.classes[idx].coach = coachSel.value || null;
+    });
+
+    // 時間
+    const timeInput = blockEl.querySelector(".cb-time");
+    timeInput.addEventListener("change", () => {
+      state.classes[idx].time = timeInput.value;
+    });
+
+    // 對話截圖：file input
+    const dropEl = blockEl.querySelector(".cb-drop-chat");
+    const fileInput = blockEl.querySelector(".cb-file-chat");
+    const listEl = blockEl.querySelector(".cb-list-chat");
+    fileInput.addEventListener("change", (e) => {
+      const newFiles = Array.from(e.target.files || []);
+      if (!newFiles.length) return;
+      newFiles.forEach(f => state.classes[idx].filesChat.push(f));
+      fileInput.value = "";
+      renderClassFileList(blockEl);
+    });
+
+    // 移除堂課按鈕
+    const removeBtn = blockEl.querySelector(".cb-remove");
+    if (removeBtn) {
+      removeBtn.addEventListener("click", () => removeClassBlock(idx));
+    }
+  }
+
+  // 初始化所有 class-block 的繫結（頁面只執行一次）
+  function initClassBlocks() {
+    document.querySelectorAll(".class-block").forEach(bindClassBlock);
+    syncClassBlocksUI();
+    const addBtn = document.getElementById("add-class-btn");
+    if (addBtn) addBtn.addEventListener("click", addClassBlock);
+  }
+
+  function addClassBlock() {
+    if (state.activeClassCount >= 3) return;
+    state.activeClassCount++;
+    syncClassBlocksUI();
+    // 滾動到新加的那一堂
+    const newBlock = document.querySelector(`.class-block[data-cb-idx="${state.activeClassCount - 1}"]`);
+    if (newBlock) newBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function removeClassBlock(idx) {
+    if (state.activeClassCount <= 1) return;
+    if (idx >= state.activeClassCount) return;
+
+    // 釋放即將被移除（最後一個 active 之前的位置）的 ObjectURL
+    const removedFiles = state.classes[idx].filesChat;
+    removedFiles.forEach(f => {
+      const url = fileUrlMap.get(f);
+      if (url) URL.revokeObjectURL(url);
+      fileUrlMap.delete(f);
+    });
+
+    // 把 idx 之後的資料往前搬一格，最後一格清空
+    for (let i = idx; i < state.activeClassCount - 1; i++) {
+      state.classes[i] = state.classes[i + 1];
+    }
+    state.classes[state.activeClassCount - 1] = {
+      course: null, coach: null, time: '', filesChat: []
+    };
+    state.activeClassCount--;
+
+    syncClassBlocksUI();
+    refreshAllVisibleBlocksFromState();
+  }
+
+  // 依 state 把每個 visible block 的 DOM 同步回去（用於 remove 後重排）
+  function refreshAllVisibleBlocksFromState() {
+    for (let i = 0; i < state.activeClassCount; i++) {
+      const block = document.querySelector(`.class-block[data-cb-idx="${i}"]`);
+      if (!block) continue;
+      const c = state.classes[i];
+
+      // time
+      const timeInput = block.querySelector(".cb-time");
+      timeInput.value = c.time || "";
+
+      // course pills
+      block.querySelectorAll(".cb-course-pills .pill").forEach(b => {
+        b.classList.toggle("active", b.dataset.value === c.course);
+      });
+
+      // coach dropdown
+      populateCoachDropdown(c.course, block);
+      const coachSel = block.querySelector(".cb-coach");
+      if (c.course && c.coach) {
+        coachSel.value = c.coach;
+      }
+
+      // chat file list
+      renderClassFileList(block);
+    }
+  }
+
+  // 依 activeClassCount 控制 block 顯示/隱藏 + 標題編號 + 移除鈕顯示 + 加堂鈕狀態
+  function syncClassBlocksUI() {
+    for (let i = 0; i < 3; i++) {
+      const block = document.querySelector(`.class-block[data-cb-idx="${i}"]`);
+      if (!block) continue;
+      const visible = i < state.activeClassCount;
+      block.style.display = visible ? "" : "none";
+
+      const title = block.querySelector(".class-block-title");
+      if (title) title.textContent = `第 ${i + 1} 堂`;
+
+      const removeBtn = block.querySelector(".cb-remove");
+      if (removeBtn) {
+        // 只有當 active 數 > 1 時才允許移除
+        removeBtn.style.display = (state.activeClassCount > 1 && visible) ? "" : "none";
+      }
+    }
+    const addBtn = document.getElementById("add-class-btn");
+    if (addBtn) {
+      if (state.activeClassCount >= 3) {
+        addBtn.disabled = true;
+        addBtn.textContent = "已達同日請假上限（3/3）";
+      } else {
+        addBtn.disabled = false;
+        addBtn.textContent = `＋ 加一堂同日請假（${state.activeClassCount}/3）`;
+      }
+    }
+  }
 
   /* Leave type cards */
   let currentLeaveType = null;
@@ -1344,7 +1693,7 @@
       state.leaveType = newType;
       document.getElementById("f-leave-type").value = state.leaveType;
       updateLeaveUI(state.leaveType);
-      renderAllFileLists();
+      renderMedicalFileList();
     });
   });
 
@@ -1352,42 +1701,28 @@
     document.getElementById("notice-temp").classList.toggle("show", type === "臨時請假");
     document.getElementById("notice-sick").classList.toggle("show", type === "病假");
 
-    // Chat upload: shown whenever a leave type is selected
-    document.getElementById("upload-chat").classList.toggle("show", !!type);
-    // Medical upload: shown only for 病假
+    // Medical upload: shown only for 病假（病假醫療證明，section 05）
     document.getElementById("upload-medical").classList.toggle("show", type === "病假");
 
-    // Dynamic chat prompt text based on leave type
-    const chatPrompt = document.getElementById("chat-prompt-text");
-    if (type === "臨時請假") {
-      chatPrompt.innerHTML = '請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>，以利核對是否於<strong>課前三小時</strong>提出。';
-    } else if (type === "病假") {
-      chatPrompt.innerHTML = '請上傳與教練提出請假的 <strong>對話截圖</strong>，須包含<strong>訊息時間</strong>，以證明已於<strong>課程開始前主動告知教練</strong>。';
-    }
-
-    document.getElementById("notice-upload-empty").style.display = type ? "none" : "block";
+    // 病假醫療證明的提示：只有在非病假時才顯示「請先選擇病假」
+    document.getElementById("notice-upload-empty").style.display =
+      (type === "病假") ? "none" : "block";
   }
 
-  /* File drops  multiple uploads, two separate categories */
-  const DROP_DEFAULTS = {
-    "drop-chat":    { text: "點擊此處上傳截圖", hint: "對話截圖  需含訊息時間", stateKey: "filesChat" },
-    "drop-medical": { text: "點擊此處上傳檔案", hint: "就診收據 / 診斷證明  可選擇多個", stateKey: "filesMedical" }
-  };
+  /* File drop 共用設定 */
+  const DROP_DEFAULTS_CHAT    = { text: "點擊此處上傳截圖", hint: "對話截圖  需含訊息時間" };
+  const DROP_DEFAULTS_MEDICAL = { text: "點擊此處上傳檔案", hint: "就診收據 / 診斷證明  可選擇多個" };
 
-  function setupFileDrop(dropId, inputId, listId, stateKey) {
-    const drop = document.getElementById(dropId);
-    const input = document.getElementById(inputId);
-    const list = document.getElementById(listId);
-
+  // 共用：醫療證明 file input（單一，只跟 state.filesMedical 綁定）
+  function setupMedicalDrop() {
+    const input = document.getElementById("file-medical");
+    if (!input) return;
     input.addEventListener("change", (e) => {
       const newFiles = Array.from(e.target.files || []);
       if (!newFiles.length) return;
-
-      newFiles.forEach(f => state[stateKey].push(f));
-      // Reset the input so selecting the same file again still triggers change
+      newFiles.forEach(f => state.filesMedical.push(f));
       input.value = "";
-
-      renderFileList(drop, list, stateKey);
+      renderMedicalFileList();
     });
   }
 
@@ -1412,15 +1747,14 @@
     return `<div class="fi-thumb fi-thumb-icon">FILE</div>`;
   }
 
-  function renderFileList(dropEl, listEl, stateKey) {
-    const files = state[stateKey];
+  // 通用：把一個 File[] 陣列渲染到一個 file-list 容器內，並更新對應的 drop-zone 文字
+  function renderFileListGeneric(dropEl, listEl, files, defaults, onRemove) {
     listEl.innerHTML = "";
 
     files.forEach((file, idx) => {
       const item = document.createElement("div");
       item.className = "file-item";
       item.innerHTML = `
-
         ${getThumbHtml(file)}
         <div class="fi-info">
           <div class="fi-name"></div>
@@ -1428,69 +1762,91 @@
         </div>
         <button type="button" class="fi-remove" aria-label="移除"></button>
       `;
-
       item.querySelector(".fi-name").textContent = file.name;
       item.querySelector(".fi-remove").addEventListener("click", (ev) => {
-        // 防止事件冒泡到外層 <label>，否則 Safari 會同時觸發檔案選擇視窗
         ev.preventDefault();
         ev.stopPropagation();
-        removeFileAt(stateKey, idx);
+        onRemove(idx);
       });
       listEl.appendChild(item);
     });
 
-    // Update drop zone state
     if (files.length > 0) {
       dropEl.classList.add("has-file");
       dropEl.querySelector(".fd-text").textContent = "新增更多檔案";
       dropEl.querySelector(".fd-hint").textContent = `已選取 ${files.length} 個檔案`;
     } else {
       dropEl.classList.remove("has-file");
-      const def = DROP_DEFAULTS[dropEl.id];
-      dropEl.querySelector(".fd-text").textContent = def.text;
-      dropEl.querySelector(".fd-hint").textContent = def.hint;
+      dropEl.querySelector(".fd-text").textContent = defaults.text;
+      dropEl.querySelector(".fd-hint").textContent = defaults.hint;
     }
   }
 
-  function removeFileAt(stateKey, idx) {
-    const removed = state[stateKey].splice(idx, 1)[0];
+  // 渲染某一堂 class-block 內的 chat file list
+  function renderClassFileList(blockEl) {
+    const idx = getBlockIndex(blockEl);
+    const dropEl = blockEl.querySelector(".cb-drop-chat");
+    const listEl = blockEl.querySelector(".cb-list-chat");
+    renderFileListGeneric(
+      dropEl, listEl, state.classes[idx].filesChat, DROP_DEFAULTS_CHAT,
+      (fileIdx) => removeClassFileAt(idx, fileIdx)
+    );
+  }
+
+  // 渲染共用醫療證明 file list
+  function renderMedicalFileList() {
+    const dropEl = document.getElementById("drop-medical");
+    const listEl = document.getElementById("list-medical");
+    renderFileListGeneric(
+      dropEl, listEl, state.filesMedical, DROP_DEFAULTS_MEDICAL,
+      (fileIdx) => removeMedicalFileAt(fileIdx)
+    );
+  }
+
+  function removeClassFileAt(blockIdx, fileIdx) {
+    const removed = state.classes[blockIdx].filesChat.splice(fileIdx, 1)[0];
     if (removed) {
       const url = fileUrlMap.get(removed);
-      if (url) {
-        URL.revokeObjectURL(url);
-        fileUrlMap.delete(removed);
-      }
+      if (url) { URL.revokeObjectURL(url); fileUrlMap.delete(removed); }
     }
-    renderAllFileLists();
+    const block = document.querySelector(`.class-block[data-cb-idx="${blockIdx}"]`);
+    if (block) renderClassFileList(block);
   }
 
-  function renderAllFileLists() {
-    renderFileList(
-      document.getElementById("drop-chat"),
-      document.getElementById("list-chat"),
-      "filesChat"
-    );
-    renderFileList(
-      document.getElementById("drop-medical"),
-      document.getElementById("list-medical"),
-      "filesMedical"
-    );
+  function removeMedicalFileAt(fileIdx) {
+    const removed = state.filesMedical.splice(fileIdx, 1)[0];
+    if (removed) {
+      const url = fileUrlMap.get(removed);
+      if (url) { URL.revokeObjectURL(url); fileUrlMap.delete(removed); }
+    }
+    renderMedicalFileList();
   }
 
   function clearAllFiles() {
-    ["filesChat", "filesMedical"].forEach(key => {
-      state[key].forEach(f => {
+    // 清空所有堂課的對話截圖
+    state.classes.forEach(c => {
+      c.filesChat.forEach(f => {
         const url = fileUrlMap.get(f);
         if (url) URL.revokeObjectURL(url);
         fileUrlMap.delete(f);
       });
-      state[key] = [];
+      c.filesChat = [];
     });
-    renderAllFileLists();
+    // 清空醫療證明
+    state.filesMedical.forEach(f => {
+      const url = fileUrlMap.get(f);
+      if (url) URL.revokeObjectURL(url);
+      fileUrlMap.delete(f);
+    });
+    state.filesMedical = [];
+    // 重新渲染所有顯示中的列表
+    document.querySelectorAll(".class-block").forEach(b => renderClassFileList(b));
+    renderMedicalFileList();
   }
 
-  setupFileDrop("drop-chat",    "file-chat",    "list-chat",    "filesChat");
-  setupFileDrop("drop-medical", "file-medical", "list-medical", "filesMedical");
+  // 一次性繫結所有 class-block 與醫療上傳
+  initClassBlocks();
+  setupMedicalDrop();
 
   // 教練姓名統一化（與 Edge Function normalizeName 邏輯一致）
   // 目的：tIaNa → Tiana；中文不動；清全形空白、零寬字元
@@ -1506,14 +1862,7 @@
       });
   }
 
-  // 即時正規化：離開教練欄位時把使用者看到的文字轉成統一格式
-  (function bindCoachNormalize() {
-    var el = document.getElementById("f-coach");
-    if (!el) return;
-    el.addEventListener("blur", function (e) {
-      e.target.value = normalizeCoachName(e.target.value);
-    });
-  })();
+  // 教練欄位現在是每堂的 <select>，下拉值已是規範化好的姓名，無需 blur normalize
 
   // 聯絡電話：只接受數字，最多 10 碼（行動電話 09XXXXXXXX）
   (function bindPhoneInput() {
@@ -1566,15 +1915,26 @@
   function resetForm() {
     const form = document.getElementById("leave-form");
     form.reset();
-    state.course = null;
     state.leaveType = null;
     currentLeaveType = null;
-    document.querySelectorAll("#course-pills .pill").forEach(b => b.classList.remove("active"));
+    // 重設所有 class-block state
+    state.classes = [
+      { course: null, coach: null, time: '', filesChat: [] },
+      { course: null, coach: null, time: '', filesChat: [] },
+      { course: null, coach: null, time: '', filesChat: [] },
+    ];
+    state.activeClassCount = 1;
+    document.querySelectorAll(".cb-course-pills .pill").forEach(b => b.classList.remove("active"));
     document.querySelectorAll("#leave-cards .leave-card").forEach(c => c.classList.remove("active"));
-    document.getElementById("f-course").value = "";
     document.getElementById("f-leave-type").value = "";
-    // 重設教練下拉回未選課種的狀態
-    populateCoachDropdown(null);
+    // 每堂的教練下拉重設成未選課種
+    document.querySelectorAll(".class-block").forEach(block => {
+      populateCoachDropdown(null, block);
+      const t = block.querySelector(".cb-time");
+      if (t) t.value = "";
+    });
+    syncClassBlocksUI();
+    refreshAllVisibleBlocksFromState();
     updateLeaveUI(null);
     clearAllFiles();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1590,12 +1950,21 @@
     if (!phoneVal)                                        missing.push("聯絡電話");
     else if (!isValidTwMobile(phoneVal))                  missing.push("聯絡電話（需為 10 碼行動電話，例：0912345678）");
     if (!document.getElementById("f-date").value)         missing.push("請假日期");
-    if (!document.getElementById("f-time").value)         missing.push("請假時間");
-    if (!state.course)                                    missing.push("請假課種");
-    if (!document.getElementById("f-coach").value.trim()) missing.push("授課教練");
     if (!state.leaveType)                                 missing.push("請假別");
-    if (!state.filesChat.length)                          missing.push("對話截圖");
-    if (state.leaveType === "病假" && !state.filesMedical.length) missing.push("就診證明");
+
+    // 逐堂驗證
+    for (let i = 0; i < state.activeClassCount; i++) {
+      const c = state.classes[i];
+      const label = `第 ${i + 1} 堂`;
+      if (!c.time) missing.push(`${label}的請假時間`);
+      if (!c.course) missing.push(`${label}的請假課種`);
+      if (!c.coach) missing.push(`${label}的授課教練`);
+      if (!c.filesChat.length) missing.push(`${label}的對話截圖`);
+    }
+
+    if (state.leaveType === "病假" && !state.filesMedical.length) {
+      missing.push("就診證明（病假必填，且為共用上傳）");
+    }
 
     if (missing.length) {
       showModal({
@@ -1678,8 +2047,10 @@
     const progressBox = document.getElementById("upload-progress");
     const progressFill = document.getElementById("up-fill");
 
-    // 計算總檔案數（病假才算醫療證明）
-    const totalFiles = state.filesChat.length +
+    // 計算總檔案數（每堂的對話截圖 + 病假時的醫療證明）
+    const activeClasses = state.classes.slice(0, state.activeClassCount);
+    const totalChatFiles = activeClasses.reduce((sum, c) => sum + c.filesChat.length, 0);
+    const totalFiles = totalChatFiles +
       (state.leaveType === "病假" ? state.filesMedical.length : 0);
     let doneFiles = 0;
 
@@ -1702,7 +2073,7 @@
       btn.innerHTML = "送出中…";
     }
 
-    // Dynamic success note based on leave type
+    // 動態成功畫面字樣（依請假別）
     const successNote = document.getElementById("success-note");
     if (state.leaveType === "臨時請假") {
       successNote.textContent = "將主動與您聯繫購買補課卡事宜。";
@@ -1734,21 +2105,36 @@
         console.warn("學員編號查詢失敗，使用預設資料夾：", e);
       }
 
-      // 1) 上傳聊天截圖 & 病假證明到 ImageKit
+      // 1) 各堂的對話截圖、醫療證明分別上傳到 ImageKit（每堂各自的 chat 子資料夾）
       const safeName = (memberName || "unknown").replace(/[^a-zA-Z0-9一-龥_-]/g, "_");
       const memberFolderName = memberId ? (memberId + "_" + safeName) : safeName;
-      const chatFolder    = "leave/" + memberFolderName + "/" + leaveDate + "/chat";
-      const medicalFolder = "leave/" + memberFolderName + "/" + leaveDate + "/medical";
+      const baseFolder = "leave/" + memberFolderName + "/" + leaveDate;
+      const medicalFolder = baseFolder + "/medical";
 
-      const [chatUrls, medicalUrls] = await Promise.all([
-        uploadBatch(state.filesChat, chatFolder, updateProgress),
-        state.leaveType === "病假" ? uploadBatch(state.filesMedical, medicalFolder, updateProgress) : Promise.resolve([]),
+      // 平行上傳：每堂的 chat (依 idx 分目錄) + 醫療證明
+      const chatUploadPromises = activeClasses.map((c, i) =>
+        uploadBatch(c.filesChat, baseFolder + "/chat_" + (i + 1), updateProgress)
+      );
+      const medicalPromise = state.leaveType === "病假"
+        ? uploadBatch(state.filesMedical, medicalFolder, updateProgress)
+        : Promise.resolve([]);
+
+      const [allChatUrls, medicalUrls] = await Promise.all([
+        Promise.all(chatUploadPromises),
+        medicalPromise,
       ]);
 
-      // 2) 呼叫 Edge Function：寫入 Supabase + 伺服器端代呼 Make webhook
-      //    （Make webhook URL 已搬到 Supabase secret，客戶端不再持有）
+      // 2) 呼叫 Edge Function：寫入 Supabase（批次） + 後端代呼 Make webhook
       btn.innerHTML = "送出中…";
       if (progressFill) progressFill.style.width = "100%";
+
+      const leaves = activeClasses.map((c, i) => ({
+        time: c.time,
+        course: c.course,
+        coach: normalizeCoachName(c.coach || ""),
+        chatImageUrls: allChatUrls[i] || [],
+      }));
+
       const payload = {
         userId: state.userId,
         memberId: memberId,
@@ -1756,29 +2142,33 @@
         name: memberName,
         phone: memberPhone,
         date: leaveDate,
-        time: document.getElementById("f-time").value,
-        course: state.course,
-        coach: normalizeCoachName(document.getElementById("f-coach").value),
         leaveType: state.leaveType,
-        chatImageUrls: chatUrls,
         medicalImageUrls: medicalUrls,
+        leaves,
         submittedAt: new Date().toISOString(),
       };
 
       const sbRes = await fetch(EDGE_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "createLeaveRequest", ...payload }),
+        body: JSON.stringify({ action: "createLeaveRequestBatch", ...payload }),
       });
       const sbData = await sbRes.json().catch(() => ({}));
       if (!sbRes.ok || !sbData.success) {
         throw new Error("Supabase 寫入失敗：" + (sbData.error || sbRes.status));
       }
-      // Make webhook 由 Edge Function 在背景送出（fire-and-forget），這裡不需要再呼叫
 
-      // Success
+      // 成功畫面：列出所有堂課
+      const sumEl = document.getElementById("success-summary");
+      if (sumEl) {
+        const indexChars = ['①', '②', '③'];
+        sumEl.innerHTML = leaves.map((l, i) => {
+          const idxChar = indexChars[i] || `(${i + 1})`;
+          return `<div class="success-item">${idxChar} ${l.time || ''} ${l.course || ''}（${l.coach || ''}）</div>`;
+        }).join('');
+      }
+
       document.getElementById("leave-form").style.display = "none";
-      // 若請假規章原本是展開的，送出成功後自動收起，確保學員清楚看到送出完成畫面
       document.getElementById("rules").classList.remove("open");
       document.getElementById("success").classList.add("show");
       window.scrollTo({ top: 0, behavior: "smooth" });
