@@ -1021,30 +1021,29 @@
   ===================================================== */
   .tour-help-btn {
     position: fixed;
-    top: 14px;
-    right: 14px;
+    bottom: 18px;
+    right: 18px;
     z-index: 9000;
-    width: 42px;
-    height: 42px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    border: 1px solid var(--mint);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 1px;
+    border: none;
+    background: var(--mint);
+    padding: 0;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 14px rgba(147, 198, 197, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform .15s ease, box-shadow .15s ease;
+    -webkit-tap-highlight-color: transparent;
   }
   .tour-help-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    box-shadow: 0 6px 18px rgba(147, 198, 197, 0.55);
   }
-  .tour-help-btn:active { transform: translateY(0); }
+  .tour-help-btn:active { transform: translateY(0) scale(0.96); }
+  .tour-help-btn svg { display: block; }
 
   .tour-overlay {
     position: fixed;
@@ -1052,11 +1051,16 @@
     z-index: 9500;
     pointer-events: none;
     opacity: 0;
+    background: rgba(40,30,28,0.65);
     transition: opacity .25s ease;
   }
   .tour-overlay.is-active {
     opacity: 1;
     pointer-events: auto;
+  }
+  /* 一般步驟（有 spotlight）：overlay 不要自己擋黑，讓 spotlight 的 box-shadow 處理 */
+  .tour-overlay.is-active:not(.is-center) {
+    background: transparent;
   }
   /* 用一個會被 box-shadow 充滿整個畫面的小方塊，挖出一個透明洞 */
   .tour-spotlight {
@@ -1066,7 +1070,7 @@
     width: 0;
     height: 0;
     border-radius: 12px;
-    box-shadow: 0 0 0 9999px rgba(40,30,28,0.62);
+    box-shadow: 0 0 0 9999px rgba(40,30,28,0.65);
     transition: top .35s cubic-bezier(.4,.2,.2,1),
                 left .35s cubic-bezier(.4,.2,.2,1),
                 width .35s cubic-bezier(.4,.2,.2,1),
@@ -1168,6 +1172,60 @@
     color: var(--text-mute);
   }
   .tour-tooltip .tt-btn-ghost:hover { color: var(--text); }
+  .tour-tooltip .tt-btn-overview {
+    background: transparent;
+    color: var(--mint-deep);
+    border: 1px solid var(--mint);
+    width: 100%;
+    margin: 4px 0 12px;
+    padding: 9px 14px;
+  }
+  .tour-tooltip .tt-btn-overview:hover {
+    background: var(--mint-soft);
+  }
+  .tour-tooltip .tt-overview-list {
+    margin: 4px 0 14px;
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tour-tooltip .tt-overview-list .ov-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0e3dd;
+  }
+  .tour-tooltip .tt-overview-list .ov-item:last-child {
+    border-bottom: none;
+  }
+  .tour-tooltip .tt-overview-list .ov-num {
+    flex: 0 0 24px;
+    height: 24px;
+    background: var(--mint-soft);
+    color: var(--mint-deep);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .tour-tooltip .tt-overview-list .ov-content {
+    flex: 1;
+  }
+  .tour-tooltip .tt-overview-list .ov-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .tour-tooltip .tt-overview-list .ov-body {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-mute);
+  }
   .tour-tooltip .tt-skip {
     position: absolute;
     top: 10px;
@@ -1189,14 +1247,30 @@
     transform: translate(-50%, -50%);
   }
 
+  /* 引導開啟時鎖住背景滑動 */
+  body.tour-locked {
+    overflow: hidden;
+    touch-action: none;
+  }
+
 </style>
 </head>
 <body>
 
 <main>
 
-  <!-- 教學引導：右上角小按鈕（隨時可點開教學） -->
-  <button type="button" class="tour-help-btn" id="tour-help-btn" aria-label="開啟使用教學" title="使用教學">?</button>
+  <!-- 教學引導：右下角浮動按鈕（隨時可點開教學） -->
+  <button type="button" class="tour-help-btn" id="tour-help-btn" aria-label="開啟使用引導" title="使用引導">
+    <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <path id="tour-fab-arc" d="M 9 32 A 23 23 0 0 0 55 32" fill="none"/>
+      </defs>
+      <text x="32" y="29" text-anchor="middle" fill="white" font-family="Times New Roman, serif" font-style="italic" font-size="22" font-weight="700">i</text>
+      <text fill="white" font-family="inherit" font-size="10" font-weight="600" letter-spacing="5">
+        <textPath href="#tour-fab-arc" startOffset="50%" text-anchor="middle">使用引導</textPath>
+      </text>
+    </svg>
+  </button>
 
   <!-- 教學引導：聚光燈覆蓋層（預設隱藏） -->
   <div class="tour-overlay" id="tour-overlay" aria-hidden="true">
@@ -1206,6 +1280,8 @@
       <span class="tt-step" id="tt-step">STEP 1 / 5</span>
       <h3 class="tt-title" id="tt-title">標題</h3>
       <p class="tt-body" id="tt-body">說明文字</p>
+      <button type="button" class="tt-btn tt-btn-overview" id="tt-overview" style="display:none;">一次看完所有重點</button>
+      <div class="tt-overview-list" id="tt-overview-list" style="display:none;"></div>
       <div class="tt-actions">
         <div class="tt-dots" id="tt-dots"></div>
         <div class="tt-buttons">
@@ -2463,6 +2539,9 @@
     const $next = document.getElementById('tt-next');
     const $skip = document.getElementById('tt-skip');
     const $help = document.getElementById('tour-help-btn');
+    const $overviewBtn = document.getElementById('tt-overview');
+    const $overviewList = document.getElementById('tt-overview-list');
+    let isOverviewMode = false;
 
     function buildDots() {
       $dots.innerHTML = '';
@@ -2515,11 +2594,22 @@
       $body.textContent = step.body;
       buildDots();
 
-      $prev.style.visibility = curIdx === 0 ? 'hidden' : 'visible';
-      $next.textContent = curIdx === TOUR_STEPS.length - 1 ? '完成' : '下一步';
+      // overview 按鈕：僅 intro 步驟（第 1 步）顯示
+      $overviewBtn.style.display = (curIdx === 0 && !isOverviewMode) ? 'block' : 'none';
+      // overview 模式下隱藏清單與一般 UI
+      if (isOverviewMode) {
+        $overviewList.style.display = 'block';
+        $body.style.display = 'none';
+      } else {
+        $overviewList.style.display = 'none';
+        $body.style.display = '';
+      }
 
-      if (!step.target) {
-        // intro：置中
+      $prev.style.visibility = (curIdx === 0 || isOverviewMode) ? 'hidden' : 'visible';
+      $next.textContent = (curIdx === TOUR_STEPS.length - 1 || isOverviewMode) ? '完成' : '下一步';
+
+      if (!step.target || isOverviewMode) {
+        // intro 或 overview 模式：置中
         $ov.classList.add('is-center');
         return;
       }
@@ -2550,10 +2640,15 @@
       };
 
       if (step.scroll !== false) {
+        // 暫時解鎖讓 scrollIntoView 生效
+        document.body.classList.remove('tour-locked');
         try { targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         catch (_) { targetEl.scrollIntoView(); }
-        // 等捲動到位再定位（保守 350ms）
-        setTimeout(place, 360);
+        // 等捲動到位再定位並重新上鎖
+        setTimeout(() => {
+          place();
+          if (active) document.body.classList.add('tour-locked');
+        }, 360);
       } else {
         place();
       }
@@ -2563,9 +2658,11 @@
       if (active) return;
       active = true;
       curIdx = 0;
+      isOverviewMode = false;
       $ov.setAttribute('aria-hidden', 'false');
       $ov.classList.add('is-active');
-      // 不鎖背景滾動：spotlight 會跟著 scroll/resize 重新定位
+      // 鎖住背景滑動（intro / overview 用）
+      document.body.classList.add('tour-locked');
       requestAnimationFrame(renderStep);
     }
 
@@ -2573,12 +2670,24 @@
       active = false;
       $ov.classList.remove('is-active', 'is-center');
       $ov.setAttribute('aria-hidden', 'true');
+      // 解除背景滑動鎖
+      document.body.classList.remove('tour-locked');
+      // 引導結束後自動回到頁面最上方
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (_) {
+        window.scrollTo(0, 0);
+      }
       if (markSeen) {
         try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
       }
     }
 
     function next() {
+      if (isOverviewMode) {
+        end(true);
+        return;
+      }
       if (curIdx >= TOUR_STEPS.length - 1) {
         end(true);
         return;
@@ -2587,9 +2696,38 @@
       renderStep();
     }
     function prev() {
+      if (isOverviewMode) return;
       if (curIdx <= 0) return;
       curIdx--;
       renderStep();
+    }
+
+    function showOverview() {
+      isOverviewMode = true;
+      $title.textContent = '請假申請 · 重點一覽';
+      $step.textContent = '';
+      // 用步驟資料建立清單
+      $overviewList.innerHTML = '';
+      TOUR_STEPS.forEach((s, i) => {
+        if (i === 0) return; // 略過 intro
+        const item = document.createElement('div');
+        item.className = 'ov-item';
+        item.innerHTML = `
+          <div class="ov-num">${i}</div>
+          <div class="ov-content">
+            <div class="ov-title">${s.title}</div>
+            <div class="ov-body">${s.body}</div>
+          </div>
+        `;
+        $overviewList.appendChild(item);
+      });
+      // 隱藏 intro 的相關元素
+      $overviewBtn.style.display = 'none';
+      $overviewList.style.display = 'block';
+      $body.style.display = 'none';
+      $prev.style.visibility = 'hidden';
+      $next.textContent = '完成';
+      buildDots();
     }
 
     // ---- 綁事件 ----
@@ -2597,6 +2735,7 @@
     $prev.addEventListener('click', prev);
     $skip.addEventListener('click', () => end(true));
     $help.addEventListener('click', start);
+    $overviewBtn.addEventListener('click', showOverview);
 
     // 點黑色遮罩（spotlight 外）也視同下一步
     $ov.addEventListener('click', (e) => {
