@@ -1016,11 +1016,205 @@
     cursor: not-allowed;
   }
 
+  /* =====================================================
+     聚光燈引導 Spotlight Tour
+  ===================================================== */
+  .tour-help-btn {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 9000;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--mint);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .tour-help-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+  .tour-help-btn:active { transform: translateY(0); }
+
+  .tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+  .tour-overlay.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* 用一個會被 box-shadow 充滿整個畫面的小方塊，挖出一個透明洞 */
+  .tour-spotlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(40,30,28,0.62);
+    transition: top .35s cubic-bezier(.4,.2,.2,1),
+                left .35s cubic-bezier(.4,.2,.2,1),
+                width .35s cubic-bezier(.4,.2,.2,1),
+                height .35s cubic-bezier(.4,.2,.2,1),
+                border-radius .35s ease;
+    pointer-events: none;
+  }
+  .tour-spotlight::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--mint);
+    border-radius: inherit;
+    box-shadow: 0 0 0 4px rgba(147,198,197,0.25);
+    animation: tour-pulse 1.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes tour-pulse {
+    0%, 100% { opacity: .85; }
+    50%      { opacity: .35; }
+  }
+
+  .tour-tooltip {
+    position: absolute;
+    width: min(320px, calc(100vw - 32px));
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 12px;
+    box-shadow: 0 10px 32px rgba(0,0,0,0.18);
+    padding: 16px 18px 14px;
+    transition: top .35s cubic-bezier(.4,.2,.2,1),
+                left .35s cubic-bezier(.4,.2,.2,1),
+                opacity .25s ease;
+    opacity: 0;
+  }
+  .tour-overlay.is-active .tour-tooltip { opacity: 1; }
+
+  .tour-tooltip .tt-step {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--terracotta);
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .tour-tooltip .tt-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 6px;
+    line-height: 1.4;
+  }
+  .tour-tooltip .tt-body {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0 0 14px;
+  }
+  .tour-tooltip .tt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tour-tooltip .tt-dots {
+    display: flex;
+    gap: 5px;
+  }
+  .tour-tooltip .tt-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(147,198,197,0.35);
+  }
+  .tour-tooltip .tt-dot.is-active {
+    background: var(--mint);
+    transform: scale(1.3);
+  }
+  .tour-tooltip .tt-buttons {
+    display: flex;
+    gap: 8px;
+  }
+  .tour-tooltip .tt-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .tour-tooltip .tt-btn-primary {
+    background: var(--mint);
+    color: #fff;
+  }
+  .tour-tooltip .tt-btn-primary:hover { background: var(--mint-deep); }
+  .tour-tooltip .tt-btn-ghost {
+    background: transparent;
+    color: var(--text-mute);
+  }
+  .tour-tooltip .tt-btn-ghost:hover { color: var(--text); }
+  .tour-tooltip .tt-skip {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .tour-tooltip .tt-skip:hover { color: var(--text); }
+
+  /* 沒有特定目標時（intro / outro），tooltip 置中，不顯示 spotlight 環 */
+  .tour-overlay.is-center .tour-spotlight { display: none; }
+  .tour-overlay.is-center .tour-tooltip {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+  }
+
 </style>
 </head>
 <body>
 
 <main>
+
+  <!-- 教學引導：右上角小按鈕（隨時可點開教學） -->
+  <button type="button" class="tour-help-btn" id="tour-help-btn" aria-label="開啟使用教學" title="使用教學">?</button>
+
+  <!-- 教學引導：聚光燈覆蓋層（預設隱藏） -->
+  <div class="tour-overlay" id="tour-overlay" aria-hidden="true">
+    <div class="tour-spotlight" id="tour-spotlight"></div>
+    <div class="tour-tooltip" id="tour-tooltip" role="dialog" aria-live="polite">
+      <button type="button" class="tt-skip" id="tt-skip" aria-label="跳過教學">略過 ✕</button>
+      <span class="tt-step" id="tt-step">STEP 1 / 5</span>
+      <h3 class="tt-title" id="tt-title">標題</h3>
+      <p class="tt-body" id="tt-body">說明文字</p>
+      <div class="tt-actions">
+        <div class="tt-dots" id="tt-dots"></div>
+        <div class="tt-buttons">
+          <button type="button" class="tt-btn tt-btn-ghost" id="tt-prev">上一步</button>
+          <button type="button" class="tt-btn tt-btn-primary" id="tt-next">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Topbar -->
   <div class="topbar">
@@ -2208,6 +2402,257 @@
   })();
 
   loadCoaches();
+
+  /* =====================================================
+     聚光燈引導 Spotlight Tour
+     - 首次造訪自動跳出（localStorage 記住）
+     - 任何時候可點右上角 "?" 重看
+  ===================================================== */
+  (function initTour() {
+    const TOUR_VERSION = 'v1';
+    const STORAGE_KEY = 'hendia_leave_tour_seen_' + TOUR_VERSION;
+
+    const TOUR_STEPS = [
+      {
+        target: null, // intro：置中無 spotlight
+        title: '請假申請 · 30 秒上手',
+        body: '本系統用來提交「臨時請假」與「病假」申請。接下來 5 步帶你完成第一次填寫。',
+      },
+      {
+        target: '#leave-cards',
+        title: '① 選擇假別',
+        body: '臨時請假需在課前主動告知教練；病假需附醫療證明。同一張表單只能填同一天的請假。',
+      },
+      {
+        target: '#f-date',
+        title: '② 選擇請假日期',
+        body: '同一張只能填一天。如果要請不同天，請分別送出多張表單。',
+        scroll: true,
+      },
+      {
+        target: '#class-blocks',
+        title: '③ 填寫堂課資訊',
+        body: '時間、課程類型、教練、與教練的對話截圖（要看得到時間）— 4 項都填才能送出。',
+        scroll: true,
+      },
+      {
+        target: '#add-class-btn',
+        title: '④ 同日多堂 / 病假補件',
+        body: '同一天請多堂可按「加一堂」（最多 3 堂）。病假需上傳醫療證明，整張表單共用 1 次。',
+        scroll: true,
+      },
+      {
+        target: '#submit-btn',
+        title: '⑤ 送出申請',
+        body: '送出後請等待場館審核，通過後將主動與您聯繫。',
+        scroll: true,
+      },
+    ];
+
+    let curIdx = 0;
+    let active = false;
+
+    const $ov   = document.getElementById('tour-overlay');
+    const $spot = document.getElementById('tour-spotlight');
+    const $tip  = document.getElementById('tour-tooltip');
+    const $step = document.getElementById('tt-step');
+    const $title= document.getElementById('tt-title');
+    const $body = document.getElementById('tt-body');
+    const $dots = document.getElementById('tt-dots');
+    const $prev = document.getElementById('tt-prev');
+    const $next = document.getElementById('tt-next');
+    const $skip = document.getElementById('tt-skip');
+    const $help = document.getElementById('tour-help-btn');
+
+    function buildDots() {
+      $dots.innerHTML = '';
+      TOUR_STEPS.forEach((_, i) => {
+        const d = document.createElement('span');
+        d.className = 'tt-dot' + (i === curIdx ? ' is-active' : '');
+        $dots.appendChild(d);
+      });
+    }
+
+    // tour-overlay 使用 position:fixed，所以 spotlight / tooltip 內部座標皆為「視窗座標」（不含 scroll）
+    function positionTooltip(rect) {
+      const tipW = $tip.offsetWidth || 320;
+      const tipH = $tip.offsetHeight || 160;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const margin = 16;
+
+      let top, left;
+      const belowTop = rect.top + rect.height + 14;
+      const aboveTop = rect.top - tipH - 14;
+
+      if (belowTop + tipH <= vh - margin) {
+        top = belowTop;
+      } else if (aboveTop >= margin) {
+        top = aboveTop;
+      } else {
+        top = vh - tipH - margin;
+      }
+
+      left = rect.left + rect.width / 2 - tipW / 2;
+      const minLeft = 12;
+      const maxLeft = vw - tipW - 12;
+      if (left < minLeft) left = minLeft;
+      if (left > maxLeft) left = maxLeft;
+
+      $tip.style.top  = top + 'px';
+      $tip.style.left = left + 'px';
+    }
+
+    function getViewRect(el) {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, left: r.left, width: r.width, height: r.height };
+    }
+
+    function renderStep() {
+      const step = TOUR_STEPS[curIdx];
+      $step.textContent = `STEP ${curIdx + 1} / ${TOUR_STEPS.length}`;
+      $title.textContent = step.title;
+      $body.textContent = step.body;
+      buildDots();
+
+      $prev.style.visibility = curIdx === 0 ? 'hidden' : 'visible';
+      $next.textContent = curIdx === TOUR_STEPS.length - 1 ? '完成' : '下一步';
+
+      if (!step.target) {
+        // intro：置中
+        $ov.classList.add('is-center');
+        return;
+      }
+      $ov.classList.remove('is-center');
+
+      const targetEl = document.querySelector(step.target);
+      if (!targetEl) {
+        // 找不到目標，當作 intro 處理
+        $ov.classList.add('is-center');
+        return;
+      }
+
+      // 需要捲動就先捲到可視範圍
+      const place = () => {
+        const pad = 8;
+        const rect = getViewRect(targetEl);
+        $spot.style.top    = (rect.top - pad) + 'px';
+        $spot.style.left   = (rect.left - pad) + 'px';
+        $spot.style.width  = (rect.width + pad * 2) + 'px';
+        $spot.style.height = (rect.height + pad * 2) + 'px';
+
+        positionTooltip({
+          top: rect.top - pad,
+          left: rect.left - pad,
+          width: rect.width + pad * 2,
+          height: rect.height + pad * 2,
+        });
+      };
+
+      if (step.scroll !== false) {
+        try { targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        catch (_) { targetEl.scrollIntoView(); }
+        // 等捲動到位再定位（保守 350ms）
+        setTimeout(place, 360);
+      } else {
+        place();
+      }
+    }
+
+    function start() {
+      if (active) return;
+      active = true;
+      curIdx = 0;
+      $ov.setAttribute('aria-hidden', 'false');
+      $ov.classList.add('is-active');
+      // 不鎖背景滾動：spotlight 會跟著 scroll/resize 重新定位
+      requestAnimationFrame(renderStep);
+    }
+
+    function end(markSeen) {
+      active = false;
+      $ov.classList.remove('is-active', 'is-center');
+      $ov.setAttribute('aria-hidden', 'true');
+      if (markSeen) {
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
+      }
+    }
+
+    function next() {
+      if (curIdx >= TOUR_STEPS.length - 1) {
+        end(true);
+        return;
+      }
+      curIdx++;
+      renderStep();
+    }
+    function prev() {
+      if (curIdx <= 0) return;
+      curIdx--;
+      renderStep();
+    }
+
+    // ---- 綁事件 ----
+    $next.addEventListener('click', next);
+    $prev.addEventListener('click', prev);
+    $skip.addEventListener('click', () => end(true));
+    $help.addEventListener('click', start);
+
+    // 點黑色遮罩（spotlight 外）也視同下一步
+    $ov.addEventListener('click', (e) => {
+      if (e.target === $ov) next();
+    });
+
+    // ESC 鍵關閉
+    document.addEventListener('keydown', (e) => {
+      if (!active) return;
+      if (e.key === 'Escape') end(true);
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') prev();
+    });
+
+    // 視窗 resize / scroll：重新定位
+    let _rePos = null;
+    function reposition() {
+      if (!active) return;
+      const step = TOUR_STEPS[curIdx];
+      if (!step || !step.target) return;
+      const el = document.querySelector(step.target);
+      if (!el) return;
+      const pad = 8;
+      const rect = getViewRect(el);
+      $spot.style.top    = (rect.top - pad) + 'px';
+      $spot.style.left   = (rect.left - pad) + 'px';
+      $spot.style.width  = (rect.width + pad * 2) + 'px';
+      $spot.style.height = (rect.height + pad * 2) + 'px';
+      positionTooltip({
+        top: rect.top - pad,
+        left: rect.left - pad,
+        width: rect.width + pad * 2,
+        height: rect.height + pad * 2,
+      });
+    }
+    window.addEventListener('resize', () => {
+      clearTimeout(_rePos);
+      _rePos = setTimeout(reposition, 80);
+    });
+    window.addEventListener('scroll', () => {
+      if (!active) return;
+      // scroll 期間立即跟，但用 rAF 節流
+      if (_rePos) cancelAnimationFrame(_rePos);
+      _rePos = requestAnimationFrame(reposition);
+    }, { passive: true });
+
+    // ---- 首次自動觸發 ----
+    let seen = false;
+    try { seen = localStorage.getItem(STORAGE_KEY) === '1'; } catch (_) {}
+    if (!seen) {
+      // 等 LIFF / 表單載入完成再啟動，避免抖動
+      window.addEventListener('load', () => {
+        setTimeout(start, 600);
+      });
+    }
+  })();
 
 </script>
 
