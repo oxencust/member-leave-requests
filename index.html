@@ -1660,7 +1660,9 @@
   //    （學員端只打 EDGE_API_URL，Edge Function 寫入 Supabase 後背景送 Make）
 
   // 3) Edge Function URL — 用於取得 ImageKit 上傳簽名（沿用 MOTI 的 endpoint）
-  const EDGE_API_URL = "https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api";
+  // 2026-05-12 Sprint 3 Phase 5 Wave 3 cutover：moti-api 從 Supabase Edge 切到 Zeabur
+  // Rollback：URL 改回 'https://mnjilhpztnowaplggvkk.supabase.co/functions/v1/moti-api' 即可
+  const EDGE_API_URL = "https://moti-hendia.zeabur.app/";
 
   const state = {
     userId: null,
